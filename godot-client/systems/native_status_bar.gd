@@ -24,7 +24,17 @@ func configure(owner,name: String,point: Vector2) -> void:
 func set_health(health: Variant) -> void:
 	if closed: return
 	if not health is Dictionary or not health.has("current") or not health.has("maximum"):
-		desired=-1; hide(); return
+		# A later disclosure must wait for its own artwork.
+		desired=-1.0
+		published=-1.0
+		published_clip=""
+		pending=""
+		pending_percent=-1.0
+		pending_clip=""
+		if is_instance_valid(picture): picture.texture=null
+		hide()
+		set_process(false)
+		return
 	desired=clampf(F.f(F.f(F.f(float(health.current))/F.f(maxf(1,float(health.maximum))))*100.0),0,100)
 	desired_clip=str(health.get("clip","percentage"))
 	if not desired_clip in Health.CLIPS: failure="Invalid original health animation state"; hide(); set_process(false); return
@@ -42,7 +52,7 @@ func _process(_delta: float) -> void:
 	if pending.is_empty(): failure="Original health status pose could not be requested"; set_process(false)
 	elif art.textures.has(pending): loaded(pending,art.textures[pending],art.bounds.get(pending,{}))
 func loaded(key: String,texture: Texture2D,bounds: Dictionary) -> void:
-	if closed or key!=pending: return
+	if closed or pending.is_empty() or key!=pending: return
 	var lo: Array=bounds.get("min",[]); var hi: Array=bounds.get("max",[])
 	if lo.size()!=2 or hi.size()!=2: failure="Original health status bounds are missing"; pending=""; set_process(false); return
 	picture.texture=texture; picture.position=attachment+Vector2(lo[0],-hi[1])*100.0; picture.size=Vector2(float(hi[0])-float(lo[0]),float(hi[1])-float(lo[1]))*100.0

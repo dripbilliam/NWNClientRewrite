@@ -44,26 +44,51 @@ func run() -> void:
 	desktop.radial.register_modal_owner(); check(desktop.radial.modal_owner_ticket==first and ui.modal_order.snapshot().records.size()==1,"Repeated current activation does not duplicate a real wheel lease")
 	ui.modal_order.set_membership_coverage(true) # Explicit authored complete fixture graph only.
 	var other:=Node.new(); ui.add_child(other); var other_ticket: Dictionary=ui.modal_order.activate(other,"other",1)
-	check(not ui.modal_order.deactivate_for_panel(22).deactivationRequested and desktop.radial.active,"A higher authored non-radial modal blocks server radial-close without layer inference")
-	desktop.radial.register_modal_owner(); check(ui.modal_order.top().ticket==first,"Explicit activation promotes a lower live wheel with the same request lifetime")
+	check(not desktop.radial.active and desktop.radial.modal_owner_ticket.is_empty() and desktop.radial.request_id==lifetime+1,"External modal activation retires the exact previous Desktop wheel")
+	check(not ui.modal_order.deactivate_for_panel(22).deactivationRequested and ui.modal_order.top().ticket==other_ticket and ui.modal_order.snapshot().records.size()==1,"A server radial-close leaves the higher non-radial owner intact")
+	open(desktop.radial)
+	var current_lifetime: int=desktop.radial.request_id
+	var current_ticket: Dictionary=desktop.radial.modal_owner_ticket.duplicate(true)
+	check(desktop.radial.active and current_lifetime>lifetime and ui.modal_order.top().ticket==current_ticket,"A reopened Desktop wheel owns a fresh request and top lease")
+	check(not desktop.retire_current_radial(lifetime) and not ui.modal_order.retire(first) and desktop.radial.active and ui.modal_order.top().ticket==current_ticket,"Retired Desktop request and ticket cannot close a reopened wheel")
 	desktop.radial_stack=[{"retain":1}]; desktop.radial_entries={1:{"retain":1}}; desktop.pending_shortcuts={1:{"retain":1}}; desktop.shortcut_context={"retain":1}; desktop.target={"keep_target":true}
-	check(ui.modal_order.deactivate_for_panel(16).deactivationRequested and not desktop.radial.active and desktop.radial.request_id>lifetime,"Original-style top deactivation retires the actual Desktop wheel exactly once")
+	var desktop_close: Dictionary=ui.modal_order.deactivate_for_panel(16)
+	check(desktop_close.deactivationRequested and desktop_close.ticket==current_ticket and not desktop.radial.active and desktop.radial.request_id==current_lifetime+1,"Original-style top deactivation retires the fresh Desktop wheel exactly once")
 	check(desktop.radial_stack.is_empty() and desktop.radial_entries.is_empty() and desktop.pending_shortcuts.is_empty() and desktop.shortcut_context.is_empty(),"Desktop retirement clears only its wheel-owned stacks/entries/pending shortcut context")
 	check(desktop.target=={"keep_target":true} and desktop.shortcut_dialogs.clears==0 and ui.modal_order.top().ticket==other_ticket,"Target cursor, lower shortcut dialogs and unrelated modal owner remain untouched")
-	check(not desktop.retire_current_radial(lifetime) and not ui.modal_order.retire(first),"Old request/ticket cannot close or remove a later owner")
-	open(desktop.radial); var world_ticket: Dictionary=desktop.radial.modal_owner_ticket.duplicate(true)
+	open(desktop.radial)
+	var world_ticket: Dictionary=desktop.radial.modal_owner_ticket.duplicate(true)
 	inventory.item_context.selection={"entryId":1}; inventory.item_context.lifetime=[1,55,42]; inventory.item_context.history=[{"kind":"root"}]; inventory.item_context.entries={1:{"keep":1}}; inventory.item_context.quickbar_owned=true
-	open(inventory.item_context.wheel); var old_item: int=inventory.item_context.wheel.request_id
-	check(ui.modal_order.deactivate_for_panel(21).deactivationRequested and not inventory.item_context.wheel.active and desktop.radial.active,"Only selected top item wheel is cancelled while another authored lower wheel remains")
-	check(inventory.item_context.selection.is_empty() and inventory.item_context.history.is_empty() and inventory.item_context.entries.is_empty() and not inventory.item_context.quickbar_owned and inventory.unrelated_gold=={"untouched":true},"Actual item cancel retires its selection/trade/quickbar lifetimes without touching a lower gold owner")
-	open(chat.context)
-	check(ui.modal_order.deactivate_for_panel(18).deactivationRequested and not chat.context.active and desktop.radial.active and chat.history==["retained message"],"Chat wheel retirement resets only its real radial widget, preserving chat history and lower world owner")
 	open(inventory.item_context.wheel)
-	check(not ui.retire_item_radial(old_item) and inventory.item_context.wheel.active,"Stale item request cannot cancel a reopened item wheel")
-	inventory.item_context.wheel.reset(); check(ui.modal_order.top().ticket==world_ticket,"Normal reset retires exactly its own current lease")
-	open(chat.context); check(ui.modal_order.snapshot().records.size()==3,"A reopened chat widget owns its new current modal lease")
-	chat.context.free(); check(ui.modal_order.snapshot().records.size()==2,"Exiting real radial owner retires its lease without scanning/closing other owners")
-	desktop.closed=true; check(not desktop.retire_current_radial(desktop.radial.request_id) and desktop.radial.active,"Closed Desktop rejects late modal retirement"); desktop.closed=false
+	var item_ticket: Dictionary=inventory.item_context.wheel.modal_owner_ticket.duplicate(true)
+	var old_item: int=inventory.item_context.wheel.request_id
+	check(not desktop.radial.active and not ui.modal_order.retire(world_ticket) and inventory.item_context.wheel.active and ui.modal_order.top().ticket==item_ticket,"External item activation retires the previous Desktop wheel and owns admission")
+	open(chat.context)
+	var chat_ticket: Dictionary=chat.context.modal_owner_ticket.duplicate(true)
+	check(not inventory.item_context.wheel.active and not ui.modal_order.retire(item_ticket) and chat.context.active and ui.modal_order.top().ticket==chat_ticket,"External chat activation retires the previous item wheel and owns admission")
+	check(inventory.item_context.selection.is_empty() and inventory.item_context.history.is_empty() and inventory.item_context.entries.is_empty() and not inventory.item_context.quickbar_owned and inventory.unrelated_gold=={"untouched":true},"Actual item cancellation retires its selection and quickbar ownership while preserving gold")
+	var chat_close: Dictionary=ui.modal_order.deactivate_for_panel(18)
+	check(chat_close.deactivationRequested and chat_close.ticket==chat_ticket and not chat.context.active and chat.history==["retained message"] and ui.modal_order.top().ticket==other_ticket,"Chat deactivation retires only its wheel and preserves chat history and the unrelated owner")
+	open(inventory.item_context.wheel)
+	var reopened_item_ticket: Dictionary=inventory.item_context.wheel.modal_owner_ticket.duplicate(true)
+	check(not ui.retire_item_radial(old_item) and not ui.modal_order.retire(item_ticket) and inventory.item_context.wheel.active and ui.modal_order.top().ticket==reopened_item_ticket,"Stale item request and ticket cannot cancel a reopened item wheel")
+	var item_close: Dictionary=ui.modal_order.deactivate_for_panel(21)
+	check(item_close.deactivationRequested and item_close.ticket==reopened_item_ticket and not inventory.item_context.wheel.active and ui.modal_order.top().ticket==other_ticket,"Server close cancels the exact reopened item wheel and preserves the unrelated owner")
+	open(inventory.item_context.wheel)
+	var reset_ticket: Dictionary=inventory.item_context.wheel.modal_owner_ticket.duplicate(true)
+	inventory.item_context.wheel.reset()
+	check(not ui.modal_order.retire(reset_ticket) and ui.modal_order.top().ticket==other_ticket,"Normal reset retires exactly its own current lease")
+	open(chat.context)
+	var exit_ticket: Dictionary=chat.context.modal_owner_ticket.duplicate(true)
+	check(exit_ticket!=chat_ticket and ui.modal_order.top().ticket==exit_ticket and ui.modal_order.snapshot().records.size()==2,"A reopened chat widget owns a fresh current modal lease")
+	chat.context.free()
+	check(not ui.modal_order.retire(exit_ticket) and ui.modal_order.top().ticket==other_ticket and ui.modal_order.snapshot().records.size()==1,"Exiting the active chat wheel retires its exact lease and preserves the unrelated owner")
+	open(desktop.radial)
+	var closed_lifetime: int=desktop.radial.request_id
+	var closed_ticket: Dictionary=desktop.radial.modal_owner_ticket.duplicate(true)
+	desktop.closed=true
+	check(not desktop.retire_current_radial(closed_lifetime) and desktop.radial.active and ui.modal_order.top().ticket==closed_ticket,"Closed Desktop rejects retirement of the exact live wheel")
+	desktop.closed=false
 	ui.close(); check(not ui.modal_order.top().available and ui.modal_order.snapshot().records.is_empty() and not ui.retire_item_radial(old_item),"UI close invalidates the registry before owner teardown and rejects late callbacks")
 	ui.free(); await process_frame
 	var result:={"success":failures.is_empty(),"checks":checks,"failures":failures,"gpu":false,"servers":0,"scope":"Actual ServerRadial open/reset/exit and Desktop/GameUi/item cancel owner callbacks; explicit authored complete modal graph, fake inventory/chat setup boundaries. Production coverage stays unavailable and no53/2 close is enabled. No original pixels/server/full modal-membership claim."}

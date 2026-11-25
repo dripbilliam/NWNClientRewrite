@@ -115,7 +115,10 @@ func present(entries: Array) -> void:
 	for serial in buttons.keys():
 		var current: Array=rows.filter(func(row):return int(row.widgetSerial)==int(serial))
 		if current.is_empty() or buttons[serial].get_meta("action_identity")!=identity(current[0]): retire(int(serial))
-	if not layout_ready: return
+	if not layout_ready:
+		# A world reset can stop processing before the first layout request.
+		if not requested and not rows.is_empty(): set_process(true)
+		return
 	for index in rows.size():
 		var row: Dictionary=rows[index]; var serial:=int(row.widgetSerial); var entry:=Plan.slot(definition,index)
 		if not buttons.has(serial):

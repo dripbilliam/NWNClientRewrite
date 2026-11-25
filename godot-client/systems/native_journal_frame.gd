@@ -166,8 +166,16 @@ func activate() -> void:
 	panel.set_meta("native_window_extras",[weakref(panel.tabs[3])])
 	quest_scroll=scroller(stage,definition.quest_view); tree=control(quest_scroll); tree.custom_minimum_size.x=definition.quest_view.size.x
 	quest_bar_host=control(stage); quest_bar=Bar.new(); quest_bar_host.add_child(quest_bar); quest_bar.configure(frame,models,definition.quest_bar,quest_scroll,36)
+	var sort_group:=ButtonGroup.new()
 	for at in 3:
-		var button:=Button.new(); stage.add_child(button); var entry: Dictionary=definition.sort[["dateradio","nameradio","priorityradio"][at]]; frame.button(button,entry,stage,models,false,true); button.toggle_mode=true; button.pressed.connect(func():sort_by(at)); sort_controls.append(button)
+		var button:=Button.new()
+		stage.add_child(button)
+		var entry: Dictionary=definition.sort[["dateradio","nameradio","priorityradio"][at]]
+		frame.button(button,entry,stage,models,false,true)
+		button.toggle_mode=true
+		button.button_group=sort_group
+		button.pressed.connect(func():sort_by(at))
+		sort_controls.append(button)
 	for entry in definition.sort_labels:
 		var label: Label=frame.create_label(entry,stage); label.text=text_owner.raw({"strRef":int(entry.caption.get("Obj_StrRef",-1))}); sort_controls.append(label)
 	notes_scroll=scroller(stage,definition.notes_view); edit=TextEdit.new(); notes_scroll.add_child(edit); edit.custom_minimum_size=Vector2(definition.notes_view.size.x,definition.notes_view.size.y); edit.size_flags_horizontal=Control.SIZE_EXPAND_FILL; edit.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY; edit.scroll_fit_content_height=true; edit.scroll_past_end_of_file=false
@@ -229,7 +237,7 @@ func render() -> void:
 				var spans: Array=[{"text":stamp+"\n\n"}]+row.description.get("spans",[{"text":row.description.get("text","")}]); Text.set_text(detail,{"spans":spans})
 			row_controls.append({"root":root,"button":button,"label":label,"detail":detail,"background":background,"expanded":expanded})
 		layout_rows(); remeasure=true
-		quest_scroll.set_deferred("scroll_vertical",int(panel.positions.get(page,0)))
+		panel.defer_scroll_restore(quest_scroll)
 	last_page=page; panel._clamp(); panel.present_if_ready()
 func layout_rows() -> void:
 	if not layout_ready or panel.page==2: return
@@ -248,7 +256,7 @@ func expand(key: String,bound: int) -> void:
 	if closed or not panel.wanted or panel.view_id!=bound: return
 	if panel.page==3: message_expanded[key]=not bool(message_expanded.get(key,true))
 	elif not model.expand(key): return
-	panel.positions[panel.page]=quest_scroll.scroll_vertical; desktop.refresh_journal(panel.page)
+	desktop.refresh_journal(panel.page)
 func reset_view() -> void:
 	capture_notes(); notes.flush(); note_deadline=0; last_page=-1
 	if layout_ready: clear_rows()

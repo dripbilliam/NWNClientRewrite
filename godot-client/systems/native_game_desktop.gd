@@ -915,7 +915,16 @@ func capture_world_scope(id: int) -> Dictionary:
 	return {"owner":get_instance_id(),"generation":generation,"area":area_id,"actor":actor_id,"target":id,"actorLifetime":actor_lifetime,"targetLifetime":target_lifetime}
 func world_scope_valid() -> bool:
 	if world_context.is_empty():return true
-	return not closed and world_context.get("owner")==get_instance_id() and world_context.get("generation")==generation and world_context.get("area")==area_id and world_context.get("actor")==actor_id and world_context.get("target")==radial_target and world_member_lifetime(actor_id)==world_context.get("actorLifetime") and world_member_lifetime(radial_target)==world_context.get("targetLifetime")
+	if closed or world_context.get("owner")!=get_instance_id() or world_context.get("generation")!=generation or world_context.get("area")!=area_id or world_context.get("actor")!=actor_id or world_context.get("target")!=radial_target:
+		return false
+	if world_member_lifetime(actor_id)!=world_context.get("actorLifetime") or world_member_lifetime(radial_target)!=world_context.get("targetLifetime"):
+		return false
+	if not world_context.get("ownedAssociate",false):
+		return true
+	# Losing ownership does not end the disclosed creature's lifetime.
+	var permission:=PlayerIdentity.permission(state.get("gameMasterPermission"))
+	var admission:=AssociateCreatureRadial.admission(actor(),objects[radial_target],{"dmPermission":permission.permission if permission.available else null})
+	return admission.available and admission.owned
 func can_radial_shortcut(data: Dictionary) -> bool:
 	if not world_context.is_empty() and not world_scope_valid():retire_current_radial(radial.request_id);return false
 	var value: Variant=radial_entries.get(int(data.get("slot",-1)))
@@ -937,6 +946,7 @@ func owned_associate_creature(object:Dictionary,portrait:String,origin:String) -
 		if not missing.has(key):missing.append(key)
 	if not missing.is_empty() or not model.available:
 		world_radial_coverage={"coverage":"owned-associate-context-unavailable","origin":origin,"missing":missing,"pending":model.pending};retire_current_radial(radial.request_id);return true
+	scope.ownedAssociate=true
 	world_context=scope
 	world_radial_coverage={"coverage":model.coverage,"origin":origin,"missing":[],"pending":[],"permissionSource":permission.source}
 	show_radial({"title":owner_ui.text.name(null,radial_target),"entries":model.entries,"center":portrait,"portraitCenter":true},true)
@@ -1283,7 +1293,12 @@ func radial_select(message: Dictionary) -> void:
 				else: target=item.binding.duplicate(); cast_target(radial_target,radial_position)
 			"panel": panel(str(item.panel))
 			"rest": command({"kind":"native-rest"})
-			"examine": command({"kind":"examine","targetId":radial_target})
+			"examine":
+				var selected_object: Dictionary=objects.get(radial_target,{})
+				if (selected_object.get("id") == radial_target and selected_object.get("areaId") == area_id
+						and selected_object.get("objectType") in [5,6,7,9,10]
+						and not selected_object.get("replicationRemoved",false) and not selected_object.get("destroyed",false)):
+					command({"kind":"examine","targetId":radial_target})
 			"interact": command({"kind":"interact","targetId":radial_target,"action":item.interaction})
 			"pickup": command({"kind":"pickup","targetId":radial_target})
 			"clear":

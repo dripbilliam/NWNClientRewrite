@@ -64,9 +64,13 @@ func commit() -> void:
 		body.add_child(root_element)
 	title.text = str(state.title); close.visible = bool(state.closable); collapse.visible = bool(state.collapsible); header.visible = bool(state.header); resize_handle.visible = bool(state.resizable) and not state.collapsed
 	body.visible = not state.collapsed; header_height = 28.0 if state.header else 0.0
-	if state.collapsed or not accepts():
+	var accepts_input := accepts()
+	if not accepts_input:
+		dragging = false
+		resizing = false
+	if state.collapsed or not accepts_input:
 		for node in nodes.values(): node.dismiss_popup()
-	apply_geometry(); restyle(); manager.input_policy(self, accepts()); layout(); show()
+	apply_geometry(); restyle(); manager.input_policy(self, accepts_input); layout(); show()
 	if first: request({"operation": "open"})
 func apply_geometry() -> void:
 	if dragging or resizing: return

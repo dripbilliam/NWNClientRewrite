@@ -100,6 +100,10 @@ func replace_image() -> void:
 	if is_instance_valid(image): veil.remove_child(image); image.queue_free()
 	image=TextureRect.new(); image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED; image.mouse_filter=Control.MOUSE_FILTER_IGNORE; veil.add_child(image); veil.move_child(image,1)
 func begin(generation: int,area: String,entry: Dictionary={}) -> void:
+	# Clear a held press from the old area even when the loading veil stays visible.
+	if active and epoch>=0 and generation>=0 and generation!=epoch and not back.disabled:
+		back.disabled=true
+		back.disabled=false
 	modal_lease.retire()
 	epoch=generation; active=true; dismissed=false; error=""; milestones={}; started=Time.get_ticks_msec(); stats.shown+=1
 	# A new target makes delayed archive-image callbacks harmless on transition.

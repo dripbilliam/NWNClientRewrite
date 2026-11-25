@@ -13,6 +13,8 @@ class Inventory:
 	var view_id:=1
 	var examine_mode:=false
 	var selections:=0
+	var item_tooltips: Node
+	func can_click_pickup() -> bool: return false
 	func select_item(_id: int) -> void: selections+=1
 var checks:=0
 var failures: Array=[]
@@ -29,6 +31,16 @@ func run() -> void:
 	var output:=str(args.get("report",""))
 	if output.is_empty() or FileAccess.file_exists(output): quit(2); return
 	root.unfocusable=true
+	# The headless root window reads the desktop pointer. A standalone viewport
+	# uses the injected position for the cursor owner's GUI hover lookup.
+	var surface:=SubViewport.new()
+	surface.size=Vector2i(1200,850)
+	surface.disable_3d=true
+	surface.gui_disable_input=false
+	surface.handle_input_locally=true
+	surface.render_target_update_mode=SubViewport.UPDATE_DISABLED
+	root.add_child(surface)
+	surface.notify_mouse_entered()
 	var oracle: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(str(args.get("oracle",""))))
 	check(oracle.target=="3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a","Target oracle identifies unchanged shipped original")
 	for row in oracle.spells:
@@ -53,21 +65,22 @@ func run() -> void:
 		check(Policy.target({"type":1},int(tuple[1]),false,0,int(tuple[0])).id==int(tuple[2]) and Policy.target({"type":1},6,false,0,int(tuple[0])).id==int(tuple[3]),"Original lock/trap/healing item cursor "+str(tuple))
 	check(Policy.target({"type":3,"intParam":9},10,false).id==37 and Policy.target({"type":3,"intParam":9},5,false).id==39,"Native skill valid/invalid cursor kinds")
 	check(Policy.target({"type":4,"spellId":12},5,false,2).id==29 and Policy.target({"type":4,"spellId":12},2,false,2).id==39,"Spell-backed feat uses magic success and action failure cursor")
-	var desktop:=Desktop.new(); root.add_child(desktop); desktop.set_process(false); desktop.target_prompt=Label.new(); root.add_child(desktop.target_prompt)
+	var desktop:=Desktop.new(); surface.add_child(desktop); desktop.set_process(false); desktop.target_prompt=Label.new(); surface.add_child(desktop.target_prompt)
 	var text:=Text.new(); desktop.rules.text=text
 	text.tables={"spells":{"orderedRows":[{"TargetType":"8"},{"TargetType":"1"},{"TargetType":"2"}]}}
 	desktop.actor_id=101; desktop.area_id=42; desktop.generation=7; desktop.objects={101:{"id":101,"objectType":5},102:{"id":102,"objectType":5},103:{"id":103,"objectType":6},104:{"id":104,"objectType":9}}
 	desktop.request.connect(func(message): commands.append(message.duplicate(true)))
 	var owner:=Owner.new(); owner.desktop=desktop
-	var cursor:=Cursor.new(); root.add_child(cursor); cursor.ui=owner; cursor.set_process(false); cursor.publisher=func(_packet):pass
-	var inventory:=Inventory.new(); root.add_child(inventory)
-	var slot:=Slot.new(); root.add_child(slot); slot.position=Vector2(100,100); slot.size=Vector2(40,40); slot.setup(inventory,{"entryId":103,"itemId":103,"name":"Target item"})
+	var cursor:=Cursor.new(); surface.add_child(cursor); cursor.ui=owner; cursor.set_process(false); cursor.publisher=func(_packet):pass
+	var inventory:=Inventory.new(); surface.add_child(inventory)
+	var slot:=Slot.new(); surface.add_child(slot); slot.position=Vector2(100,100); slot.size=Vector2(40,40); slot.setup(inventory,{"entryId":103,"itemId":103,"name":"Target item"})
 	desktop.target={"type":2,"intParam":0,"classIndex":2,"metamagic":4,"domainLevel":3}
 	check(cursor.hovered_selection(slot.image,false).id==29,"Active-server spell TargetType replaces pickup cursor over item slots")
-	var motion:=InputEventMouseMotion.new(); motion.position=Vector2(110,110); root.push_input(motion,true); await process_frame
-	var click:=InputEventMouseButton.new(); click.position=motion.position; click.button_index=MOUSE_BUTTON_LEFT; click.pressed=true; root.push_input(click,true); click=click.duplicate(); click.pressed=false; root.push_input(click,true); await process_frame
+	var motion:=InputEventMouseMotion.new(); motion.position=slot.get_global_rect().get_center(); surface.push_input(motion,true); await process_frame
+	check(surface.gui_get_hovered_control()==slot,"Injected motion makes the viewport hover the actual target slot")
+	var click:=InputEventMouseButton.new(); click.position=motion.position; click.button_index=MOUSE_BUTTON_LEFT; click.pressed=true; surface.push_input(click,true); click=click.duplicate(); click.pressed=false; surface.push_input(click,true); await process_frame
 	check(commands.size()==1 and commands[0].kind=="native-cast" and commands[0].targetId==103 and commands[0].spellId==0 and commands[0].actorId==101 and commands[0].areaId==42 and commands[0].generation==7,"Native input on an inventory target emits the original-compatible cast request with current owner context")
-	check(desktop.target.is_empty() and inventory.selections==0,"Target click consumes selection without activating or moving the item")
+	check(desktop.target.is_empty() and inventory.selections==0 and not surface.gui_is_dragging(),"Target click consumes selection without activating or moving the item")
 	desktop.target={"type":2,"intParam":1}; var before:=commands.size()
 	check(cursor.hovered_selection(slot,false).id==31 and cursor.target_slot(slot) and commands.size()==before and not desktop.target.is_empty(),"Invalid item target is gray and cannot fabricate a cast or select the item")
 	check(cursor.hovered_selection(desktop.target_prompt,false).id==31,"Unmapped GUI controls retain the invalid targeting cursor instead of pretending to be a world action")
@@ -82,7 +95,7 @@ func run() -> void:
 	check(cursor.target_slot(slot) and commands[-1].kind=="native-script-target" and commands[-1].version==9 and commands[-1].targetId==103,"Inventory script target routes to its canonical server selection request")
 	desktop.target={"type":2,"intParam":0}; inventory.view_id=2; before=commands.size()
 	check(not cursor.target_slot(slot) and commands.size()==before,"Stale slot cannot submit targeting after repository view changes")
-	var cancel:=InputEventMouseButton.new(); cancel.button_index=MOUSE_BUTTON_RIGHT; cancel.pressed=true; root.push_input(cancel,true); await process_frame
+	var cancel:=InputEventMouseButton.new(); cancel.button_index=MOUSE_BUTTON_RIGHT; cancel.pressed=true; surface.push_input(cancel,true); await process_frame
 	check(desktop.target.is_empty() and cursor.hovered_selection(slot,false).id==1,"Right-click cancels targeting even while the pointer is over a menu")
 	cursor.close(); cursor.free(); desktop.close(); desktop.target_prompt.free(); desktop.free(); slot.free(); inventory.free(); owner=null; text.close(); text=null; await process_frame; await process_frame
 	var file:=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"commands":commands,"publicConnections":0,"physical_pointer_changes":0,"scope":"Unchanged spell/script target cursor setup oracle, active-table projection and synthetic native viewport input through inventory targeting. Emitted requests are inspected here; owned local-server checks separately prove accepted gameplay actions. Range/LOS/associate/DM, complete UI target widgets and full UI parity remain unproven."},"  ")+"\n"); file.close(); quit(0 if failures.is_empty() else 1)

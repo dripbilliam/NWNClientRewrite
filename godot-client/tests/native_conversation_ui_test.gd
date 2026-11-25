@@ -22,6 +22,9 @@ func run() -> void:
 	var ui:=Gameplay.new(); surface.add_child(ui); ui.configure(catalog,install,ProjectSettings.globalize_path("user://native-prepared-v2"),output+".layout.cfg"); ui.request.connect(func(m):requests.append(m.duplicate(true)))
 	check(await wait_until(func():return ui.tables_ready),"Active original TLK and portrait rules prepare")
 	var dialog=ui.conversation; var skin=ui.conversation_skin; check(skin.requested and not dialog.opened,"Installed conversation models prepare before the first dialogue")
+	var fallback_key: String=skin.frame.art.portrait_resource("po_hu_m_99_m").to_lower()
+	check(await wait_until(func():return skin.frame.art.textures.has(fallback_key)),"Original fallback portrait raster is warm before any dialogue")
+	check(not dialog.visible and skin.find_children("*","TextureRect",false,false).is_empty(),"Startup fallback load creates no portrait outside the hidden dialogue")
 	var portrait:=-1
 	for id in ui.text.tables.portraits.orderedRows.size():
 		var res: String=ui.desktop.rules.cell(ui.desktop.rules.row("portraits",id),"BaseResRef","")
@@ -105,6 +108,7 @@ func run() -> void:
 		check(await wait_until(func():return dialog.visible and skin.display_ready()),"Long conversation remains admitted before Escape input")
 		before=requests.size(); await key(KEY_ESCAPE); await key(KEY_ESCAPE,false); check(dialog.visible and dialog.pending and requests.size()==before+1 and requests.back().abort,"Escape requests authoritative abort and keeps the dialog until the server responds")
 		await receive(ui,{"kind":"dialog-close"}); check(not dialog.visible and dialog.reply_ids.is_empty(),"Server close retires every received reply")
+		check(not skin.portrait.is_visible_in_tree() and skin.find_children("*","TextureRect",false,false).is_empty(),"Server close leaves no dialogue portrait visible")
 		diagnostic=skin.snapshot(); diagnostic.art_failure=ui.inventory.frame_skin.art.failed.keys(); diagnostic.physicalMouseWarped=false; check(diagnostic.art_failure.is_empty(),"Original conversation resources and poses have no missing-art failures")
 	else: check(false,"Native conversation frame activates without fallback")
 	ui.close(); ui.free(); await process_frame; await process_frame

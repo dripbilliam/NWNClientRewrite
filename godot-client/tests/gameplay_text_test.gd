@@ -123,6 +123,21 @@ func run() -> void:
 	check(dialog.visible and dialog.pending and sent.back().abort, "Title-bar close requests server abort and waits for its close confirmation")
 	dialog.present({"kind": "dialog-error", "entryId": 2})
 	check(dialog.visible and not dialog.pending, "Failed abort remains visible and retryable")
+	var many_replies := []
+	for index in 12:
+		many_replies.append({"id": 500 + index, "rich": {"text": "Reply %d" % (index + 1)}})
+	dialog.present({"kind": "dialog-replies", "entryId": 2, "replies": many_replies})
+	key.keycode = KEY_0
+	count = sent.size()
+	dialog._unhandled_key_input(key)
+	check(sent.size() == count + 1 and sent.back().replyId == 509, "Stock 0 shortcut selects the tenth displayed reply")
+	many_replies[9].available = false
+	dialog.present({"kind": "dialog-replies", "entryId": 2, "replies": many_replies})
+	count = sent.size()
+	dialog._unhandled_key_input(key)
+	check(sent.size() == count, "Stock 0 shortcut respects reply availability")
+	dialog.replies.get_child(11).pressed.emit()
+	check(sent.size() == count + 1 and sent.back().replyId == 511, "Replies beyond the ten numeric shortcuts remain clickable")
 	var host := Main.new()
 	root.add_child(host)
 	var bridge := Connection.new()

@@ -2,18 +2,143 @@ extends "res://tests/native_portrait_chooser_test.gd"
 const Desktop=preload("res://systems/native_game_desktop.gd")
 const Gameplay=preload("res://systems/native_gameplay_ui.gd")
 const Context=preload("res://systems/native_quickbar_context.gd")
+const Quickbar=preload("res://systems/server_quickbar.gd")
+const QuickbarFrame=preload("res://systems/native_quickbar_frame.gd")
+const KeyBindings=preload("res://systems/native_key_bindings.gd")
 class DialogArt extends HeadlessArt:
 	func close() -> void:pass
 class TestInventory extends RefCounted:
 	var frame_skin
 	var closed:=false
 	func close() -> void:closed=true;frame_skin.close()
+class QuickbarPainter extends RefCounted:
+	var art: HeadlessArt
+	var fonts: HeadlessFonts
 var sent: Array=[]
 var chat_sent: Array=[]
 var timeline: Array=[]
-func key(code: int) -> void:
-	for pressed in [true,false]:
-		var event:=InputEventKey.new();event.keycode=code;event.physical_keycode=code;event.pressed=pressed;surface.push_input(event,true);await frames()
+func key_event(code: int,pressed: bool,shift: bool=false,ctrl: bool=false) -> void:
+	var event:=InputEventKey.new()
+	event.keycode=code; event.physical_keycode=code; event.pressed=pressed
+	event.shift_pressed=shift; event.ctrl_pressed=ctrl
+	surface.push_input(event,true); await frames()
+func key(code: int,shift: bool=false,ctrl: bool=false) -> void:
+	for pressed in [true,false]: await key_event(code,pressed,shift,ctrl)
+func exercise_quickbar_reset() -> Array:
+	var bar:=Quickbar.new()
+	surface.add_child(bar); bar.setup()
+	var activations: Array=[]
+	var observations: Array=[]
+	bar.request.connect(func(message): activations.append(message))
+	var rows: Array=[]
+	for index in 36:
+		rows.append({"empty":false,"label":"Shortcut %d"%index,"enabled":true,"uses":null})
+	var view:=100
+	for test in [[KEY_SHIFT,12],[KEY_CTRL,24]]:
+		var modifier:=int(test[0]); var offset:=int(test[1])
+		var shift:=modifier==KEY_SHIFT; var ctrl:=modifier==KEY_CTRL
+		bar.receive({"kind":"quickbar-view","quickbarId":view,"rows":rows.duplicate(true)})
+		await frames()
+		await key_event(modifier,true,shift,ctrl)
+		check(bar.buttons.has(offset) and not bar.buttons.has(0),"Modifier shows bank starting at %d"%offset)
+		bar.reset()
+		await key_event(modifier,false)
+		view+=1
+		bar.receive({"kind":"quickbar-view","quickbarId":view,"rows":rows.duplicate(true)})
+		await frames()
+		var displayed: int=bar.shown_page*12
+		activations.clear()
+		await click(bar.buttons[displayed])
+		await key(KEY_F1)
+		var expected:={"kind":"quickbar-activate","quickbarId":view,"index":0}
+		observations.append({"retired_bank":offset,"first_displayed_slot":displayed,"click_and_f1":activations.duplicate(true)})
+		check(displayed==0 and activations==[expected,expected],"Reset from bank %d aligns first displayed button and F1 on base slot"%offset)
+		await key_event(modifier,true,shift,ctrl)
+		check(bar.buttons.has(offset) and not bar.buttons.has(0),"Modifier still displays bank %d after reset"%offset)
+		activations.clear()
+		await key(KEY_F1,shift,ctrl)
+		await key_event(modifier,false)
+		await key(KEY_F1)
+		var modified:=expected.merged({"index":offset},true)
+		check(bar.buttons.has(0) and activations==[modified,expected],"Modifier release restores base display and F1 after bank %d"%offset)
+		view+=1
+	bar.free()
+	return observations
+func publish_artwork_view(bar,view: int,icon: String) -> void:
+	var rows: Array=[]
+	for index in 36:
+		rows.append({"empty":false,"label":"Shortcut %d"%index,"enabled":true,"uses":null,"icon":icon})
+	bar.receive({"kind":"quickbar-view","quickbarId":view,"rows":rows})
+func exercise_deferred_quickbar_artwork() -> Array:
+	var panel:=Control.new()
+	panel.size=Vector2(surface.size)
+	surface.add_child(panel)
+	var bar:=Quickbar.new()
+	panel.add_child(bar); bar.setup()
+	var bindings:=KeyBindings.new()
+	panel.add_child(bindings)
+	bindings.active={"hotbar":bindings.hotbar_defaults(),"normal":{"values":{}}}
+	bindings.bindings_ready=true
+	bar.set_key_bindings(bindings)
+	var art:=HeadlessArt.new()
+	panel.add_child(art)
+	var skin:=QuickbarFrame.new()
+	panel.add_child(skin); skin.set_process(false)
+	bar.native_skin=skin
+	skin.panel=bar
+	skin.frame=QuickbarPainter.new()
+	skin.frame.art=art
+	skin.layout_ready=true
+	skin.definition={"width":900,"bounds":Rect2(0,-96,900,96)}
+	skin.endcaps=TextureRect.new()
+	skin.add_child(skin.endcaps)
+	art.textures.ready=true
+
+	var activations: Array=[]
+	var observations: Array=[]
+	bar.request.connect(func(message): activations.append(message))
+	var view:=200
+	publish_artwork_view(bar,view,"ready")
+	await frames()
+	check(bar.visible,"Initial native quickbar view admits ready artwork")
+	for modifier in [KEY_SHIFT,KEY_CTRL]:
+		var offset:=12 if modifier==KEY_SHIFT else 24
+		var shift: bool=modifier==KEY_SHIFT
+		var ctrl: bool=modifier==KEY_CTRL
+		for hold in [false,true]:
+			if not hold: await key_event(modifier,true,shift,ctrl)
+			view+=1
+			var icon:="deferred_icon_%d"%view
+			publish_artwork_view(bar,view,icon)
+			await frames()
+			check(not bar.visible and skin.current_icons.has(icon) and art.calls.back()[0]==icon,"Replacement view waits for its newly requested icon")
+			await key_event(modifier,hold,hold and shift,hold and ctrl)
+			activations.clear()
+			await key(KEY_F1,hold and shift,hold and ctrl)
+			check(not bar.visible and activations.is_empty(),"Artwork admission keeps hidden shortcuts inactive")
+			art.textures[icon]=true
+			skin.try_admit()
+			await frames()
+			var displayed: int=bar.shown_page*12
+			await click(bar.buttons[displayed])
+			await key(KEY_F1,hold and shift,hold and ctrl)
+			var expected_index: int=offset if hold else 0
+			var expected:={"kind":"quickbar-activate","quickbarId":view,"index":expected_index}
+			observations.append({"modifier_bank":offset,"held_on_admission":hold,"displayed":displayed,"click_and_f1":activations.duplicate(true)})
+			check(bar.visible and displayed==expected_index and activations==[expected,expected],"Artwork admission keeps quickbar display and activation on slot %d"%expected_index)
+			await key_event(modifier,false)
+			check(bar.buttons.has(0),"A visible modifier release still restores the base bank")
+
+	var editor:=LineEdit.new()
+	panel.add_child(editor); editor.grab_focus()
+	await frames()
+	activations.clear()
+	await key_event(KEY_SHIFT,true,true)
+	await key(KEY_F1,true)
+	await key_event(KEY_SHIFT,false)
+	check(editor.has_focus() and bar.shown_page==0 and activations.is_empty(),"Focused text edit still blocks quickbar bank changes and activation")
+	panel.free()
+	return observations
 func type_command(value: String) -> void:
 	for character in value:
 		var unicode:=character.unicode_at(0);var physical: int=unicode-32 if unicode>=97 and unicode<=122 else unicode
@@ -66,6 +191,8 @@ func run() -> void:
 		var before:=sent.size();await key(KEY_ENTER);timeline.append({"event":"after-typed-command-enter","state":macro_snapshot(owner,ui)})
 		check(sent.size()==before+1 and sent[-1].button=={"type":18,"commandLabel":"Typed macro","commandLine":"typed command"},"Physically typed second-stage text submits through the real Gameplay owner")
 		check(owner.scope.is_empty() and not owner.edit.wanted and chat_sent.is_empty() and ui.chat.entry.text=="UNSUBMITTED_CHAT" and not ui.chat.entry.has_focus(),"Typed-command final Enter closes only its source dialog and preserves unrelated chat")
+	var bank_resets:=await exercise_quickbar_reset()
+	var deferred_banks:=await exercise_deferred_quickbar_artwork()
 	ui.close();check(ui.inventory.closed and painter.closed and owner.closed,"Actual Gameplay close retires desktop dialogs, dummy inventory ownership and source painter normally")
 	ui.free();painter.free();surface.queue_free();await frames(6)
-	var file:=FileAccess.open(args.report,FileAccess.WRITE);file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"timeline":timeline,"sent":sent,"chatSent":chat_sent,"sourceArtworkDouble":true,"graphical":false,"scope":"Actual NativeGameplayUi unhandled-key owner, server chat LineEdit, original UTIL_EDITPOPUP and real two-stage macro controller; controlled raster/fonts, no server/GPU/pixel acceptance."},"\t"));file.close();quit(0 if failures.is_empty() else 1)
+	var file:=FileAccess.open(args.report,FileAccess.WRITE);file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"timeline":timeline,"sent":sent,"chatSent":chat_sent,"bankResets":bank_resets,"deferredBanks":deferred_banks,"sourceArtworkDouble":true,"graphical":false,"scope":"Actual NativeGameplayUi unhandled-key owner, server chat LineEdit, original UTIL_EDITPOPUP, two-stage macro controller and quickbar reset/artwork admission input; controlled raster/fonts, no server/GPU/pixel acceptance."},"\t"));file.close();quit(0 if failures.is_empty() else 1)

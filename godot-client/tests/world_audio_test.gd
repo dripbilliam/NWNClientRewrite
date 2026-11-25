@@ -37,6 +37,47 @@ func energy(capture: AudioEffectCapture) -> Vector2:
 	var value := Vector2.ZERO
 	for sample in capture.get_buffer(available):value += Vector2(sample.x*sample.x,sample.y*sample.y)
 	return value/float(available)
+func sound_stages(client: Client, sound_id: int) -> Array:
+	var events := client.sent.filter(func(row):return row.kind == "world-audio-observed" and row.soundId == sound_id)
+	return events.map(func(row):return row.stage)
+func resource_requests(client: Client) -> Array:
+	return client.sent.filter(func(row):return row.kind == "world-audio-resource")
+func check_cached_resource_failure(audio: Audio, client: Client) -> void:
+	var request_count := resource_requests(client).size()
+	var failed_count: int = audio.stats.failed
+	var sound_name := "test_missing_wav"
+	var first := audio.one_shot(sound_name, null)
+	var second := audio.one_shot(sound_name, null)
+	var requests := resource_requests(client)
+	check(requests.size() == request_count + 1 and audio.voices[first].player == null and audio.voices[second].player == null,
+		"Two one-shots wait on one shared resource request")
+	audio.receive({"kind":"world-audio-failed","resourceId":requests[-1].resourceId})
+	check(sound_stages(client, first) == ["failed","retired"] and sound_stages(client, second) == ["failed","retired"],
+		"Host failure settles both waiting one-shots")
+	var retired_count: int = audio.stats.retired
+	var repeated := [audio.one_shot(sound_name, null), audio.one_shot(sound_name, null), audio.one_shot(sound_name, null)]
+	check(repeated.all(func(id):return not audio.voices.has(id) and sound_stages(client, id) == ["failed","retired"])
+		and audio.stats.retired == retired_count + repeated.size(), "Repeated missing one-shots fail and release their voices")
+	var effect := audio.create_sound(sound_name, 5)
+	audio.play(effect)
+	check(audio.voices.has(effect) and audio.voices[effect].stage == "failed"
+		and not audio.voices[effect].requested and audio.voices[effect].player == null, "Cached failure preserves the explicit effect handle")
+	audio.stop(effect)
+	audio.play(effect)
+	check(sound_stages(client, effect) == ["failed","stopped","failed"] and not audio.voices[effect].requested,
+		"Explicit effect replay settles the cached failure")
+	audio.destroy(effect)
+	check(resource_requests(client).size() == request_count + 1 and audio.stats.failed == failed_count + 1,
+		"Repeated failures neither refetch nor recount a resource failure")
+	var valid_first := audio.one_shot("coalesced", null)
+	var valid_second := audio.one_shot("coalesced", null)
+	requests = resource_requests(client)
+	for message in packets(tone(6000), requests[-1].resourceId, "coalesced"):
+		audio.receive(message)
+	check(requests.size() == request_count + 2 and audio.voices[valid_first].stage == "playing" and audio.voices[valid_second].stage == "playing",
+		"An unrelated valid resource still plays for both callers after one request")
+	audio.destroy(valid_first)
+	audio.destroy(valid_second)
 func run() -> void:
 	var output := ""
 	for arg in OS.get_cmdline_user_args():
@@ -123,6 +164,7 @@ func run() -> void:
 	var before: int = audio.stats.imports
 	audio.receive({"kind":"world-audio-begin","resourceId":999,"name":"absent"})
 	check(audio.stats.imports == before,"Unknown resource identity cannot allocate a native transfer")
+	check_cached_resource_failure(audio, client)
 	client.pivots.clear();await frames();check(audio.listener_state.is_empty(),"Missing controlled actor suppresses listener projection")
 	client.pivots[1] = actor;await frames()
 	var snapshot := audio.snapshot();audio.close();await frames()

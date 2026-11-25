@@ -331,23 +331,34 @@ func render_history() -> void:
 	if not layout_ready or closed or rendering_history: return
 	var activation_history_started:=Time.get_ticks_usec() if chat_activation_probe and activation_probe_active else 0
 	rendering_history=true
-	var following: Array=[]; var positions: Array=[]
+	# Capture before the first rebuild of a burst, while the previous label
+	# still describes the history the reader can see.
+	var capture_scroll:=scroll_restore.is_empty()
 	for pane in panes:
-		var range_control: VScrollBar=pane.scroll.get_v_scroll_bar(); following.append(range_control.value>=range_control.max_value-range_control.page-1)
-		positions.append(range_control.value)
+		if capture_scroll:
+			var range_control: VScrollBar=pane.scroll.get_v_scroll_bar()
+			var following:=bool(preferences.autoscroll) and range_control.value>=range_control.max_value-range_control.page-1
+			var anchor:=reader_anchor(pane,range_control.value) if not following and range_control.value>0 else {}
+			scroll_restore.append({"following":following,"position":range_control.value,"anchor":anchor,"trimmed":false})
 		pane.label.clear()
 		pane.wanted_replies={}
+		pane.row_starts={}
 	var retained: Dictionary={}
 	for row in panel.rows: retained[int(row.chat_sequence)]=true
-	for accepted in admitted:
+	for index in admitted.size():
+		var accepted: Dictionary=admitted[index]
 		for serial in accepted.keys():
-			if not retained.has(serial): accepted.erase(serial)
+			if not retained.has(serial):
+				accepted.erase(serial)
+				scroll_restore[index].trimmed=true
 	for row in panel.rows:
 		if not Preferences.visible(row,preferences): continue
 		for index in (2 if split else 1):
 			if not admitted[index].has(int(row.chat_sequence)): continue
-			var label: RichTextLabel=panes[index].label; var name: Dictionary=row.get("name",{})
+			var pane: Dictionary=panes[index]
+			var label: RichTextLabel=pane.label; var name: Dictionary=row.get("name",{})
 			var first_character:=label.get_total_character_count(); var first_line:=maxi(0,label.get_line_count()-1)
+			pane.row_starts[int(row.chat_sequence)]=first_character
 			if preferences.timestamps and not str(row.get("received_at","")).is_empty(): Text.append(label,{"text":"["+(str(row.received_at) if preferences.seconds else str(row.received_at).left(5))+"] "},Color(0.55,0.55,0.55))
 			if not str(name.get("text","")).is_empty() or row.get("nativeNameResolved")==true and not row.get("system",false): Text.append(label,name,Color(0.65,0.65,1)); Text.append(label,{"text":": "})
 			var color:=str(row.get("color","")); var fallback:=Color.html(color) if color.length()==7 and color.begins_with("#") and color.substr(1).is_valid_hex_number(false) else Color(0.9,0.88,0.78)
@@ -361,7 +372,7 @@ func render_history() -> void:
 				for padding in 8:
 					if label.get_line_offset(label.get_line_count()-1)-label.get_line_offset(first_line)>=required: break
 					Text.append(label,{"text":"\n"})
-				var serial:=int(row.chat_sequence); var pane: Dictionary=panes[index]; pane.wanted_replies[serial]=true
+				var serial:=int(row.chat_sequence); pane.wanted_replies[serial]=true
 				if not pane.replies.has(serial):
 					var button:=ReplyButton.new(); pane.body.add_child(button); button.configure(reply_plan,frame.art,str(row.reply.get("portrait",""))); button.button_down.connect(capture_reply.bind(index,serial)); button.pressed.connect(reply_clicked.bind(index,serial,epoch)); pane.replies[serial]={"button":button,"row":row,"character":first_character}
 					button.tooltip_provider=reply_tooltip.bind(index,serial,epoch)
@@ -372,9 +383,6 @@ func render_history() -> void:
 		for serial in pane.replies.keys():
 			if not pane.wanted_replies.has(serial): pane.replies[serial].button.close(); pane.replies[serial].button.queue_free(); pane.replies.erase(serial)
 		sync_content(index)
-	# Coalesce same-frame bursts around the first reader anchor, then restore
-	# after the container has recalculated the new received text height.
-	if scroll_restore.is_empty(): scroll_restore=[following.map(func(value):return bool(value) and bool(preferences.autoscroll)),positions]
 	if not get_tree().process_frame.is_connected(restore_scroll): get_tree().process_frame.connect(restore_scroll,CONNECT_ONE_SHOT)
 	if chat_activation_probe and activation_probe_active:activation_history_us+=Time.get_ticks_usec()-activation_history_started;activation_history_calls+=1
 func sync_content(index: int) -> void:
@@ -446,11 +454,34 @@ func place_entry() -> void:
 	# original16px text region; clip and center, never scale the glyphs.
 	panel.entry.size=Vector2(entry_clip.size.x,maxf(entry_clip.size.y,panel.entry.get_combined_minimum_size().y))
 	panel.entry.position=Vector2(0,(entry_clip.size.y-panel.entry.size.y)*0.5)
+func message_top(label: RichTextLabel,character: int) -> float:
+	return label.get_line_offset(label.get_character_line(character))
+func reader_anchor(pane: Dictionary,position: float) -> Dictionary:
+	var starts: Dictionary=pane.get("row_starts",{})
+	if starts.is_empty(): return {}
+	var serials:=starts.keys()
+	var lower:=0
+	var upper:=serials.size()
+	while lower+1<upper:
+		var middle:=(lower+upper)>>1
+		if message_top(pane.label,starts[serials[middle]])<=position: lower=middle
+		else: upper=middle
+	var serial: int=serials[lower]
+	return {"sequence":serial,"inset":position-message_top(pane.label,starts[serial])}
 func restore_scroll() -> void:
 	var restore: Array=scroll_restore; scroll_restore=[]
 	if closed or restore.is_empty(): return
 	for index in 2:
-		var range_control: VScrollBar=panes[index].scroll.get_v_scroll_bar(); range_control.value=range_control.max_value if bool(restore[0][index]) else float(restore[1][index])
+		var pane: Dictionary=panes[index]
+		var saved: Dictionary=restore[index]
+		var range_control: VScrollBar=pane.scroll.get_v_scroll_bar()
+		if saved.following: range_control.value=range_control.max_value; continue
+		var position: float=saved.position
+		var anchor: Dictionary=saved.anchor
+		if saved.trimmed and not anchor.is_empty():
+			var starts: Dictionary=pane.row_starts
+			position=message_top(pane.label,starts[anchor.sequence])+float(anchor.inset) if starts.has(anchor.sequence) else 0.0
+		range_control.value=position
 func select_mode(index: int) -> void:
 	if closed or index<0 or index>=Prompt.MODES.size(): return
 	mode=index; popup.hide(); refresh_modes()
@@ -486,9 +517,13 @@ func prime_player(account: String) -> void:
 	var was_focused: bool=panel.entry.has_focus(); panel.entry.text='/tp "'+account+'" '; panel.entry.grab_focus(); panel.entry.caret_column=panel.entry.text.length()
 	if was_focused: focused(true)
 func entry_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+	if not event is InputEventKey or not event.pressed: return
+	if event.keycode==KEY_ESCAPE:
 		panel.entry.clear(); panel.entry.release_focus()
 		if is_instance_valid(popup): popup.hide()
+		panel.entry.accept_event()
+	elif owner_ui.presentation_enabled and event.keycode in [KEY_UP,KEY_DOWN] and not (event.shift_pressed or event.ctrl_pressed or event.alt_pressed or event.meta_pressed):
+		# The original single-line prompt leaves the caret in place on Up and Down.
 		panel.entry.accept_event()
 func handle_input(event: InputEvent,index: int) -> void:
 	if closed: return
@@ -558,7 +593,7 @@ func font_loaded(name: String) -> void:
 	render_history()
 func jump_latest() -> void:
 	if closed or not layout_ready: return
-	scroll_restore=[[true,true],[0.0,0.0]]
+	scroll_restore=[{"following":true},{"following":true}]
 	if not get_tree().process_frame.is_connected(restore_scroll): get_tree().process_frame.connect(restore_scroll,CONNECT_ONE_SHOT)
 func original_preset() -> void:
 	if closed: return

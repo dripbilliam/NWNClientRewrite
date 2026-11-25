@@ -5,6 +5,7 @@ const Plan=preload("res://systems/native_data/conversation_layout.gd")
 const Text=preload("res://systems/server_text.gd")
 const Bar=preload("res://systems/native_scrollbar.gd")
 const ViewportFit=preload("res://tools/native_parity/ui/conversation_viewport.gd")
+const FALLBACK_PORTRAIT:="po_hu_m_99_m"
 var ui
 var view
 var frame
@@ -34,7 +35,7 @@ var flow_count:=0
 var reply_metrics_dirty:=true
 var canvas_space: Dictionary={}
 var portrait_key:=""
-var fallback_portrait: TextureRect
+var fallback_portrait_preload:=StyleBoxTexture.new()
 var rendered_serial:=-1
 func configure(owner,catalog,cache_path: String) -> void:
 	ui=owner; view=ui.conversation; view.native_skin=self; frame=ui.inventory.frame_skin
@@ -48,9 +49,8 @@ func configure(owner,catalog,cache_path: String) -> void:
 		jobs[id]=name
 	if frame.fonts.has_method("request"):
 		frame.fonts.request(Plan.FONT); frame.fonts.request("fnt_galahad14")
-	# The no-speaker portrait is an original installed resource too.
-	fallback_portrait=TextureRect.new(); add_child(fallback_portrait)
-	frame.art.bind_portrait(fallback_portrait,"po_hu_m_99_m")
+	# Warm the installed fallback without creating a control outside the dialogue.
+	frame.art.bind(fallback_portrait_preload,frame.art.portrait_resource(FALLBACK_PORTRAIT))
 func _process(_delta: float) -> void:
 	if closed: return
 	if not view.opened: return
@@ -167,7 +167,7 @@ func refresh_speaker() -> void:
 	if not layout_ready: return
 	var object: Dictionary=ui.text.objects.get(view.speaker_id,{}); var name: String=ui.text.name(null,view.speaker_id); var resource: String=ui.desktop.rules.portrait(object,3) if not object.is_empty() else ""
 	if name.is_empty(): name=ui.text.raw({"strRef":0x1445})
-	if resource.is_empty(): resource="po_hu_m_99_m"
+	if resource.is_empty(): resource=FALLBACK_PORTRAIT
 	var signature: Array=[view.speaker_id,name,resource]
 	if speaker_signature==signature: return
 	speaker_signature=signature; Text.set_text(name_label,ui.text.rich({"text":name},view.speaker_id)); portrait.hide(); frame.art.bind_portrait(portrait,resource)

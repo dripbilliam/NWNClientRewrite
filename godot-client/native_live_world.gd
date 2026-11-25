@@ -340,6 +340,8 @@ func _send_profiled(value: Dictionary) -> void:
 	if write_error!=OK:
 		report.protocol_write_error={"error":write_error,"bytes":encoded.size(),"ticks_ms":Time.get_ticks_msec(),"status":peer.get_status()}
 		creation_runtime.event("protocol:enqueue-error",report.protocol_write_error)
+	elif value.get("kind","")=="examine" and is_instance_valid(gameplay_ui):
+		gameplay_ui.begin_examine_request(int(value.get("targetId",-1)))
 func flush_protocol_output() -> void:
 	if peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED: return
 	var began:=FrameProfile.begin(); var result: int=protocol_output.flush(Callable(peer,"put_partial_data")); FrameProfile.finish("protocol_write",began)

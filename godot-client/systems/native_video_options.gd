@@ -214,7 +214,10 @@ func refresh() -> void:
 	for row in rows:
 		var label:=Label.new(); mode_list.add_child(label); frame.font_style(label,definition.entries.videomodelist.caption); label.text=str(row.label); label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if rows.is_empty():
-		var label:=Label.new(); mode_list.add_child(label); frame.font_style(label,definition.entries.videomodelist.caption); label.text=settings.error if not settings.error.is_empty() else "Reading display modes…"; label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var status: String=settings.error
+		if status.is_empty():
+			status="No display modes available for this monitor." if settings.query_ready else "Reading display modes…"
+		var label:=Label.new(); mode_list.add_child(label); frame.font_style(label,definition.entries.videomodelist.caption); label.text=status; label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 func cohort_snapshot() -> Dictionary:
 	var result:={"scope":"video_options","ready":false,"models_expected":requested.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
 	if closed: result.failures.append("Video page owner is closed")

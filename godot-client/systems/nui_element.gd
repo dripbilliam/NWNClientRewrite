@@ -100,7 +100,9 @@ func pointer(input: InputEvent, source: Control) -> void:
 			event("mousedown" if input.pressed else "mouseup", {"position": position, "button": button})
 			if input.pressed: pointer_button = button
 			else:
-				if pointer_button == button and not widget is BaseButton: event("click")
+				# Generated choices send left clicks through their pressed signal.
+				var handled_by_button: bool = source is BaseButton and input.button_index == MOUSE_BUTTON_LEFT
+				if pointer_button == button and not widget is BaseButton and not handled_by_button: event("click")
 				pointer_button = -1
 		elif input.pressed and input.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
 			var direction: Vector2 = {MOUSE_BUTTON_WHEEL_UP: Vector2(0, 1), MOUSE_BUTTON_WHEEL_DOWN: Vector2(0, -1), MOUSE_BUTTON_WHEEL_LEFT: Vector2(1, 0), MOUSE_BUTTON_WHEEL_RIGHT: Vector2(-1, 0)}[input.button_index] * input.factor
@@ -171,7 +173,7 @@ func options() -> void:
 	if option_labels != values.get("options", []):
 		option_labels = values.options.duplicate()
 		for button in option_buttons: button.queue_free()
-		option_buttons.clear(); option_group = ButtonGroup.new() if kind == "options" else null
+		option_buttons.clear(); option_group = ButtonGroup.new()
 		for index in option_labels.size():
 			var button: Button = CheckBox.new() if kind == "options" else Button.new(); button.button_group = option_group; button.clip_text = true; button.text = str(option_labels[index]); button.pressed.connect(func(): change(index); event("click")); button.gui_input.connect(func(input): pointer(input, button)); button.focus_entered.connect(func(): event("focus")); button.focus_exited.connect(func(): event("blur")); add_child(button); option_buttons.append(button)
 			button.mouse_entered.connect(func(): if not retired: manager.style(button, "option" if kind == "options" else "button_select", str(values.get("font", "(default)")), values.get("foreground_color")))

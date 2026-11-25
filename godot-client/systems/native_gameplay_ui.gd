@@ -99,6 +99,9 @@ var portrait_jobs: Dictionary={}
 var examine_jobs: Dictionary={}
 var examine_pending: Dictionary={}
 var examine_message: Dictionary={}
+var examine_request_scope: Array=[]
+var examine_requested_target:=-1
+var examine_superseded_targets: Dictionary={}
 var queue: Array=[]
 var pending_speech_logs: Array=[]
 var speech_text_revision:=-1
@@ -216,6 +219,10 @@ func set_gameplay_visible(value: bool) -> void:
 	inventory.gold.set_process_input(value)
 	mouse_cursor.set_process_input(value)
 	if not value:
+		# A local targeting gesture belongs to the gameplay view being hidden.
+		# Script targeting is still owned by the received server state.
+		if not desktop.target.is_empty() and int(desktop.target.get("type",0))!=45:
+			desktop.cancel_target()
 		mouse_cursor.select(preload("res://systems/native_data/mouse_cursor.gd").selection())
 func bind_modal_radials() -> void:
 	if closed or not is_instance_valid(modal_order): return
@@ -273,14 +280,14 @@ func set_inventory_backdrop_opacity(opacity: float) -> void:
 func set_world(epoch: int,area: int,controlled: int,objects: Array,raw_inventory: Dictionary={},header: Dictionary={}) -> void:
 	var began:=Timing.begin()
 	if generation!=epoch:
-		conversation.reset(); examine.reset(); examine_message.clear(); clear_floating();pending_speech_logs.clear()
+		conversation.reset(); examine.reset(); examine_message.clear(); clear_examine_requests(); clear_floating();pending_speech_logs.clear()
 	Timing.finish("snapshot_ui_reset_ms",began); began=Timing.begin()
 	generation=epoch; area_id=area; controlled_id=controlled; text.objects={}
 	for object in objects: text.objects[int(object.id)]=object
 	observe_actor_names(header,objects)
 	if is_instance_valid(overhead):overhead.observe_sources()
 	if is_instance_valid(script_floating):script_floating.observe_sources()
-	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe(text.objects.keys())
+	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe_snapshot()
 	drain_speech_logs()
 	Timing.finish("snapshot_ui_object_map_ms",began); began=Timing.begin()
 	inventory.set_world(epoch,area,controlled,objects,raw_inventory)
@@ -618,11 +625,36 @@ func present(message: Dictionary,speech_receipt: Dictionary={}) -> void:
 			conversation.present({"kind":"dialog-replies","entryId":message.entryId,"end":message.end,"localEnd":message.replies.is_empty(),"replies":replies}); stats.dialogs+=1
 		"examine": present_examine(message)
 		"dialog-error": conversation.present(message)
+func clear_examine_requests() -> void:
+	examine_request_scope.clear()
+	examine_requested_target=-1
+	examine_superseded_targets.clear()
+func begin_examine_request(target_id: int) -> void:
+	if closed or target_id<0 or not is_instance_valid(examine):return
+	var scope: Array=[generation,area_id,controlled_id]
+	if examine_request_scope!=scope:
+		clear_examine_requests()
+		examine_request_scope=scope
+	if examine_requested_target>=0 and examine_requested_target!=target_id:
+		examine_superseded_targets[examine_requested_target]=true
+	examine_requested_target=target_id
+	examine_superseded_targets.erase(target_id)
+	if examine.state.is_empty() or int(examine.state.targetId)==target_id:return
+	# Retire the old presentation while the server owns the replacement record.
+	examine.reset()
+	examine_message.clear()
 func present_examine(message: Dictionary) -> void:
+	var id:=int(message.targetId)
+	if examine_request_scope!=[generation,area_id,controlled_id] or id==examine_requested_target or bool(message.get("close",false)):
+		clear_examine_requests()
+	elif examine_superseded_targets.has(id):
+		# Apply the received record to other owners without reopening Examine.
+		inventory.receive(message)
+		return
 	revision+=1
 	examine_message=message.duplicate(true)
 	inventory.receive(message)
-	var id:=int(message.targetId); var output:={"kind":"examine","type":message.type,"identified":bool(message.get("identified",true)),"targetId":id,"revision":revision,"name":Rich.parse(text.name(message.get("name"),id)),"warnings":[],"facts":[],"properties":[],"effects":[]}
+	var output:={"kind":"examine","type":message.type,"identified":bool(message.get("identified",true)),"targetId":id,"revision":revision,"name":Rich.parse(text.name(message.get("name"),id)),"warnings":[],"facts":[],"properties":[],"effects":[]}
 	output.close=bool(message.get("close",false)) or (message.type=="trap" and not message.get("success",false))
 	if message.has("description"): output.description=text.rich(message.description,id)
 	if message.type=="item":
@@ -732,5 +764,5 @@ func close() -> void:
 	if is_instance_valid(examine):examine.close_modal_owner()
 	if is_instance_valid(modal_surfaces):modal_surfaces.close()
 	actor_names.close();actor_name_history_complete=false
-	text.close(); table_jobs.clear(); portrait_jobs.clear(); examine_jobs.clear(); examine_pending.clear(); examine_message.clear(); queue.clear();pending_speech_logs.clear(); pool.clear(); catalog=null
+	text.close(); table_jobs.clear(); portrait_jobs.clear(); examine_jobs.clear(); examine_pending.clear(); examine_message.clear(); clear_examine_requests(); queue.clear();pending_speech_logs.clear(); pool.clear(); catalog=null
 func _exit_tree() -> void: close()

@@ -91,6 +91,7 @@ func reset() -> void:
 	quickbar_id = -1
 	selected_index = -1
 	page = 0
+	shown_page = page
 	rows.clear()
 	buttons.clear()
 	textures.clear()
@@ -194,15 +195,20 @@ func activate(index: int) -> void:
 		request.emit({"kind": "quickbar-activate", "quickbarId": quickbar_id, "index": index})
 
 func _input(event: InputEvent) -> void:
-	if not visible or not event is InputEventKey:
+	if not event is InputEventKey:
+		return
+	var shortcuts_available := visible
+	var bank_modifier: bool = event.keycode in [KEY_SHIFT, KEY_CTRL]
+	# Artwork admission can hide a live view while its bank still changes.
+	if not shortcuts_available and (quickbar_id < 0 or not bank_modifier):
 		return
 	if is_instance_valid(key_bindings) and key_bindings.blocked(): return
 	var focus := get_viewport().gui_get_focus_owner()
 	if focus is LineEdit or focus is TextEdit or not is_instance_valid(key_bindings) and event.ctrl_pressed and event.alt_pressed:
 		return
-	if event.keycode in [KEY_SHIFT, KEY_CTRL]:
+	if bank_modifier:
 		render(2 if event.ctrl_pressed else (1 if event.shift_pressed else page))
-	if not event.pressed or event.echo:
+	if not shortcuts_available or not event.pressed or event.echo:
 		return
 	if is_instance_valid(key_bindings):
 		var index: int=key_bindings.hotbar_index(event,page)

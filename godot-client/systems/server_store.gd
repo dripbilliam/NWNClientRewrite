@@ -68,6 +68,7 @@ func setup(owner, storage: String) -> void:
 	reset()
 
 func reset() -> void:
+	dragging = false
 	clear_selection()
 	for id in stock_buttons.keys(): retire_stock(int(id))
 	stock_buttons.clear(); structural_key=null

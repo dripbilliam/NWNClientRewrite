@@ -10,6 +10,8 @@ var scroll: ScrollContainer
 var body: VBoxContainer
 var state: Dictionary = {}
 var positions: Dictionary = {}
+var scroll_restore_pending := false
+var scroll_restore_revision := 0
 var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
@@ -27,6 +29,7 @@ func clear_body() -> void:
 func reset() -> void:
 	if is_instance_valid(native_skin): native_skin.reset_view()
 	journal_lifetime += 1
+	scroll_restore_pending = false
 	wanted = false; view_id = -1; page = 0; state.clear(); positions.clear(); remove_meta("native_journal_failure"); clear_body(); hide()
 
 func open() -> void:
@@ -48,6 +51,7 @@ func present_if_ready() -> void:
 
 func close_journal() -> void:
 	var was_wanted := wanted
+	scroll_restore_revision += 1
 	wanted = false; hide()
 	if was_wanted: request.emit({"kind": "journal-close", "journalLifetime":journal_lifetime})
 
@@ -58,11 +62,24 @@ func choose(index: int) -> void:
 func receive(message: Dictionary) -> void:
 	if message.kind == "journal-closed": reset(); return
 	if not wanted or message.kind != "journal-view": return
-	positions[page] = native_skin.quest_scroll.scroll_vertical if is_instance_valid(native_skin) and native_skin.layout_ready and page!=2 else scroll.scroll_vertical
+	# The visible scroll offset can still belong to the outgoing page until layout settles.
+	if not scroll_restore_pending:
+		positions[page] = native_skin.quest_scroll.scroll_vertical if is_instance_valid(native_skin) and native_skin.layout_ready and page!=2 else scroll.scroll_vertical
+	scroll_restore_pending = false
 	page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); remove_meta("native_journal_failure"); clear_body()
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); present_if_ready(); return
 	for index in tabs.size(): tabs[index].disabled = index == page
 	for entry in state.entries:
 		body.add_child(Text.label(entry.title, 550)); body.add_child(Text.label(entry.description, 550)); body.add_child(HSeparator.new())
 	if state.entries.is_empty(): body.add_child(Text.label({"text": "No entries in this category." if state.loaded else "Waiting for the server journal…"}, 550))
-	scroll.set_deferred("scroll_vertical", int(positions.get(page, 0))); _clamp()
+	defer_scroll_restore(scroll); _clamp()
+
+func defer_scroll_restore(target: ScrollContainer) -> void:
+	scroll_restore_revision += 1
+	scroll_restore_pending = true
+	_apply_scroll_restore.call_deferred(target, int(positions.get(page, 0)), scroll_restore_revision)
+
+func _apply_scroll_restore(target: ScrollContainer, offset: int, revision: int) -> void:
+	if not wanted or not scroll_restore_pending or revision != scroll_restore_revision: return
+	scroll_restore_pending = false
+	if is_instance_valid(target): target.scroll_vertical = offset

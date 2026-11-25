@@ -22,6 +22,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_requested.connect(close_map); reset()
 
 func reset() -> void:
+	dragging = false
 	if is_instance_valid(native_skin): native_skin.reset_view()
 	wanted = false; view_id = -1; board.reset(); Text.set_text(note, {}); hide()
 
@@ -35,6 +36,7 @@ func present_if_ready() -> void:
 	show(); move_to_front()
 
 func close_map() -> void:
+	dragging = false
 	if wanted: request.emit({"kind": "map-close"})
 	wanted = false; hide()
 	if is_instance_valid(native_skin): native_skin.close_editor()

@@ -85,6 +85,24 @@ func run() -> void:
 	check(frame.mode==3 and frame.mode_label.text=="Party:" and not frame.popup.visible,"Actual source channel choice updates the caption without stealing edit focus")
 	chat.entry.grab_focus(); await frames()
 	check(requests.back()=={"kind":"native-panel","panel":"chat-focus","open":true,"mode":3,"actorId":42,"areaId":55,"generation":3},"Actual entry focus sends original GUI event metadata in controlled scope")
+	chat.entry.text="Draft under cursor"; chat.entry.caret_column=5
+	for arrow in [KEY_UP,KEY_DOWN]:
+		await key(surface,arrow); await key(surface,arrow,false)
+		check(chat.entry.has_focus() and chat.entry.text=="Draft under cursor" and chat.entry.caret_column==5,"Plain %s preserves the focused draft and its caret"%OS.get_keycode_string(arrow))
+	chat.entry.select(1,4)
+	var selected_caret:=chat.entry.caret_column
+	await key(surface,KEY_UP); await key(surface,KEY_UP,false)
+	await key(surface,KEY_DOWN); await key(surface,KEY_DOWN,false)
+	check(chat.entry.get_selected_text()=="raf" and chat.entry.caret_column==selected_caret,"Plain vertical key presses and releases retain an active text selection")
+	chat.entry.deselect(); chat.entry.caret_column=5
+	var shifted_arrow:=InputEventKey.new()
+	shifted_arrow.keycode=KEY_UP; shifted_arrow.physical_keycode=KEY_UP; shifted_arrow.shift_pressed=true
+	for pressed in [true,false]:
+		shifted_arrow.pressed=pressed; surface.push_input(shifted_arrow,true); await frames()
+	check(chat.entry.caret_column==0 and chat.entry.get_selected_text()=="Draft","Modified Up retains the existing LineEdit selection behavior")
+	chat.entry.deselect(); chat.entry.caret_column=5
+	await key(surface,KEY_LEFT); await key(surface,KEY_LEFT,false)
+	check(chat.entry.caret_column==4,"Left still moves the caret within the draft")
 	var count:=chat.rows.size(); chat.entry.text="Party draft"; await key(surface,KEY_ENTER); await key(surface,KEY_ENTER,false)
 	check(requests.back()=={"kind":"chat","channel":6,"text":"Party draft"} and chat.entry.text.is_empty() and not chat.entry.has_focus() and chat.rows.size()==count,"Actual Enter submits the selected channel without a local echo")
 	check(requests[-2].panel=="chat-focus" and not requests[-2].open,"Native submit releases focus and sends GUI event2")

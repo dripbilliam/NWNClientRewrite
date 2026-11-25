@@ -14,8 +14,12 @@ class Target extends Node3D:
 	var pick_surfaces: Array=[]
 func configure(value,area: int) -> void: registry=value; area_id=area
 func forget(id: int) -> void:
-	if is_instance_valid(registry): registry.forget_entity(id)
-	if instances.has(id): instances[id].queue_free(); instances.erase(id); stats.removed+=1
+	if instances.has(id):
+		var target: Target=instances[id]
+		if is_instance_valid(registry) and registry.native_owners.get(id)==target: registry.forget_entity(id)
+		target.queue_free()
+		instances.erase(id)
+		stats.removed+=1
 	objects.erase(id)
 func receive(rows: Array,removed: Array=[],delta: bool=false) -> bool:
 	if closed: return false

@@ -8,6 +8,84 @@ func _initialize() -> void: call_deferred("run")
 func check(ok: bool, text: String) -> void:
 	checks += 1
 	if not ok: failures.append(text)
+func click_choice(button: Button, mouse_button: MouseButton = MOUSE_BUTTON_LEFT) -> void:
+	var point := button.get_global_rect().get_center()
+	var motion := InputEventMouseMotion.new()
+	motion.position = point
+	motion.global_position = point
+	root.push_input(motion, true)
+	await process_frame
+	for pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = mouse_button
+		event.button_mask = (MOUSE_BUTTON_MASK_LEFT if mouse_button == MOUSE_BUTTON_LEFT else MOUSE_BUTTON_MASK_RIGHT) if pressed else 0
+		event.pressed = pressed
+		event.position = point
+		event.global_position = point
+		root.push_input(event, true)
+		await process_frame
+func selected_choices(element) -> Array:
+	var selected: Array = []
+	for index in element.option_buttons.size():
+		if element.option_buttons[index].button_pressed: selected.append(index)
+	return selected
+func choice_changes(sent: Array, control_id: int) -> Array:
+	return sent.filter(func(row): return row.get("operation") == "change" and row.get("controlId") == control_id).map(func(row): return row.value)
+func choice_pointer_events(sent: Array, first: int, control_id: int) -> Array:
+	return sent.slice(first).filter(func(row):
+		return row.get("controlId") == control_id and row.get("event") in ["mousedown", "mouseup", "click"]
+	).map(func(row): return row.event)
+func publish_choices(manager, version: int, tab: int) -> void:
+	manager.receive({"kind": "nui-frame", "windowId": 1001, "version": version, "rootId": 9101, "title": "Authored choices", "closable": true, "collapsible": false, "collapsed": false, "header": true, "transparent": false, "border": true, "acceptsInput": true, "resizable": false, "geometry": {"x": 30, "y": 40, "w": 450, "h": 180}})
+	var nodes: Array = [
+		{"controlId": 9101, "type": "col", "tag": "root", "index": -1, "children": [9102, 9103], "values": {"enabled": true, "visible": true}},
+		{"controlId": 9102, "type": "tabbar", "tag": "tabs", "index": -1, "children": [], "values": {"enabled": true, "visible": true, "width": 340, "height": 50, "direction": 0, "options": ["First", "Second", "Third"], "selected": tab}},
+		{"controlId": 9103, "type": "options", "tag": "options", "index": -1, "children": [], "values": {"enabled": true, "visible": true, "width": 340, "height": 50, "direction": 0, "options": ["One", "Two"], "selected": 1}}
+	]
+	manager.receive({"kind": "nui-nodes", "windowId": 1001, "version": version, "nodes": nodes})
+	manager.receive({"kind": "nui-commit", "windowId": 1001, "version": version})
+func exercise_choices(manager, sent: Array) -> void:
+	root.notify_mouse_entered()
+	publish_choices(manager, 1, 0)
+	await process_frame
+	await process_frame
+	var tabbar = manager.windows[1001].nodes[9102]
+	var options = manager.windows[1001].nodes[9103]
+	check(selected_choices(tabbar) == [0] and selected_choices(options) == [1], "Server tabbar and ordinary options start with independent selections")
+	var pointer_events := ["mousedown", "mouseup", "click"]
+	var first := sent.size()
+	await click_choice(tabbar.option_buttons[0])
+	var reselect := selected_choices(tabbar)
+	check(reselect == [0], "Reselecting an active NUI tab keeps it highlighted")
+	check(choice_pointer_events(sent, first, 9102) == pointer_events, "Tab reselect emits one down, up and click")
+	publish_choices(manager, 2, 0)
+	await process_frame
+	first = sent.size()
+	await click_choice(tabbar.option_buttons[1])
+	var switched := selected_choices(tabbar)
+	check(switched == [1] and selected_choices(options) == [1], "Switching NUI tabs highlights only the new tab without affecting ordinary options")
+	check(choice_pointer_events(sent, first, 9102) == pointer_events, "Tab switch emits one down, up and click")
+	check(choice_changes(sent, 9102) == [0, 1], "Tab pointer callbacks retain their choice indices and private control ID")
+	publish_choices(manager, 3, 2)
+	await process_frame
+	check(selected_choices(tabbar) == [2], "Server selection overrides the pointer-selected tab")
+	publish_choices(manager, 4, -1)
+	await process_frame
+	check(selected_choices(tabbar).is_empty() and choice_changes(sent, 9102) == [0, 1], "Empty server selection clears the tabbar without emitting an input change")
+	await click_choice(tabbar.option_buttons[2])
+	check(selected_choices(tabbar) == [2] and choice_changes(sent, 9102) == [0, 1, 2], "A tab can be selected normally after the server clears the selection")
+	await click_choice(options.option_buttons[1])
+	check(selected_choices(options) == [1], "Reselecting ordinary options preserves their active choice")
+	first = sent.size()
+	await click_choice(options.option_buttons[0])
+	check(selected_choices(options) == [0] and selected_choices(tabbar) == [2] and choice_changes(sent, 9103) == [1, 0], "Ordinary options keep independent single-selection and input routing")
+	check(choice_pointer_events(sent, first, 9103) == pointer_events, "Option switch emits one down, up and click")
+	first = sent.size()
+	await click_choice(tabbar.option_buttons[2], MOUSE_BUTTON_RIGHT)
+	var right_click := choice_pointer_events(sent, first, 9102)
+	check(right_click == pointer_events and selected_choices(tabbar) == [2] and choice_changes(sent, 9102) == [0, 1, 2], "Right click preserves pointer events and does not change the selected tab")
+	observations.tabbar = {"reselect": reselect, "switch": switched, "changes": choice_changes(sent, 9102), "right_click": right_click}
+	manager.receive({"kind": "nui-remove", "windowId": 1001})
 func run() -> void:
 	var output := ""
 	var fixture := "res://reports/nui-ui-fixture-v2.json"
@@ -70,6 +148,7 @@ func run() -> void:
 	manager.receive({"kind": "nui-remove", "windowId": 1000})
 	manager.receive({"kind": "nui-remove", "windowId": window.window_id}); await process_frame
 	check(manager.windows.is_empty(), "Server window removal retires native controls")
+	await exercise_choices(manager, sent)
 	manager.reset(); await process_frame; await process_frame
 	check(int(manager.retired_state().windows) == 0 and int(manager.retired_state().resources) == 0, "Reset releases old native windows and decoded image resources")
 	manager.free(); overlay.free(); await process_frame

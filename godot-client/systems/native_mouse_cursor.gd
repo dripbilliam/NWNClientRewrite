@@ -57,6 +57,8 @@ func select(value: Dictionary,down: bool=false) -> void:
 	ensure(Policy.variant(int(desired.id),bool(desired.allow_pressed),pressed))
 func world_pointer(hit: Dictionary,blocked: bool) -> void:
 	if closed: return
+	# Gameplay visibility disables this input owner during area loading.
+	if not is_processing_input(): select(Policy.selection(),pressed); return
 	var desktop=ui.desktop
 	# GUI hover is resolved separately so slots win over the generic menu arrow.
 	if not is_instance_valid(desktop): select(Policy.selection(),pressed); return
@@ -71,6 +73,7 @@ func world_pointer(hit: Dictionary,blocked: bool) -> void:
 		if player is Dictionary: player_ids.append(int(player.get("objectId",player.get("character",{}).get("id",-1))))
 	select(Policy.world(hit,desktop.objects,desktop.actor_id,cursors,player_ids),pressed)
 func hovered_selection(control: Control,dragging: bool) -> Dictionary:
+	if not is_processing_input(): return Policy.selection()
 	while is_instance_valid(control):
 		if control is Slot and control.current() and control.row.has("entryId"):
 			if is_instance_valid(ui) and is_instance_valid(ui.desktop):

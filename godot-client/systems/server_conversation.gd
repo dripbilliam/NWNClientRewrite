@@ -47,6 +47,11 @@ func clear_replies() -> void:
 	reply_ids.clear()
 	reply_available.clear(); rows.clear()
 
+func reset_scroll(child: Control) -> void:
+	var scroller := child.get_parent() as ScrollContainer
+	if scroller != null:
+		scroller.scroll_vertical = 0
+
 func reset() -> void:
 	serial+=1; local_end=false; speaker_id=-1
 	opened = false
@@ -85,14 +90,19 @@ func present(message: Dictionary) -> void:
 			clear_replies()
 			entry_rich=message.get("rich", {"text": message.get("text", "")}).duplicate(true)
 			Text.set_text(body, entry_rich)
+			reset_scroll(body)
+			reset_scroll(replies)
 			present_if_ready()
 			rendered.emit(str(message.kind))
 		"dialog-replies":
 			if not opened:
 				return
+			var next_entry_id := int(message.entryId)
+			if entry_id >= 0 and next_entry_id != entry_id:
+				reset_scroll(replies)
 			clear_replies()
 			serial+=1; local_end=bool(message.get("localEnd",false))
-			entry_id = int(message.entryId)
+			entry_id = next_entry_id
 			pending = false
 			end_button.disabled = false
 			for row in message.replies:
@@ -154,8 +164,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event.keycode == KEY_ESCAPE:
 		choose(4294967295, true)
 		get_viewport().set_input_as_handled()
-	elif event.keycode >= KEY_1 and event.keycode <= KEY_9:
-		var index: int = int(event.keycode) - KEY_1
+	elif event.keycode >= KEY_0 and event.keycode <= KEY_9:
+		var index: int = 9 if event.keycode == KEY_0 else int(event.keycode) - KEY_1
 		if index < reply_ids.size() and reply_available[index]:
 			choose(reply_ids[index])
 			get_viewport().set_input_as_handled()

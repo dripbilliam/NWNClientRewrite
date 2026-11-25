@@ -149,6 +149,8 @@ func offer(id: int,row: Dictionary,view: Control,mode: int=1) -> void:
 	# after overlap: negative offscreen coordinates must not round twice.
 	offers[id]={"view":weakref(view),"witness":slots[id].witness.duplicate(),"mode":mode,"position":view.position,"size":view.size,"frame":Engine.get_process_frames()}
 	update_processing()
+func observe_snapshot() -> void:
+	observe(slots.keys())
 func observe(changed_ids: Array=[],removed_ids: Array=[]) -> void:
 	if not synchronize_scope():return
 	for raw_id in removed_ids:retire(int(raw_id))

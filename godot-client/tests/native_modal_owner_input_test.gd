@@ -60,8 +60,17 @@ func run() -> void:
 			requests.append(message.duplicate(true))
 			if message.kind=="radial-select":
 				info.set_context({"ready":true,"name":"Callback popup","description":"Same synchronous owner"},ui.text,painter.art,[2]);info.open();callback_states.append(wheel.active))
-		wheel_open(wheel);action_menu(wheel);await click(surface,wheel.buttons[0])
-		check(callback_states==[true] and wheel.active and info.available() and not wheel.modal_admitted(),"Actual wheel pointer callback preserves its own live wheel while the new popup owns admission")
+		# The real wheel waits for its art before revealing clickable actions.
+		wheel.art=painter.art
+		wheel.layout_ready=true
+		wheel.configure_text(painter.fonts)
+		painter.art.bind(wheel.center_frame,"gui_ra_circle56","texture",true,"")
+		painter.art.bind(wheel.frames[0],"gui_ra_circle56","texture",true,"")
+		painter.art.bind(wheel.selection,"gui_ra_clearring","texture",true,"")
+		wheel_open(wheel);action_menu(wheel);await frames()
+		var expected_request:={"kind":"radial-select","requestId":wheel.request_id,"menuId":wheel.menu_id,"slot":0}
+		await click(surface,wheel.buttons[0])
+		check(requests==[expected_request] and callback_states==[true] and wheel.active and info.available() and not wheel.modal_admitted(),"Actual wheel pointer callback preserves its own live wheel while the new popup owns admission")
 		var request_count:=requests.size();await click(surface,info.buttons.closebutton)
 		check(not info.wanted and wheel.active and requests.size()==request_count and wheel.modal_admitted(),"Enabled lower wheel does not steal popup mouse/Escape or emit cancellation; exact prior lease resumes")
 		wheel.reset();info.set_context({"ready":true,"name":"Unmapped guard","description":"Literal"},ui.text,painter.art,[3]);info.open()
@@ -75,17 +84,33 @@ func run() -> void:
 		menu.update_native();await frames()
 		check(menu.native_frame.visible and menu.modal_lease.admits(),"Actual prepared menu replaces its fallback without duplicating logical lifetime")
 		var before: Dictionary=menu.modal_lease.ticket.duplicate(true);menu.update_native();check(menu.modal_lease.ticket==before,"Repeated artwork/text completion does not promote or replace main-menu lifetime")
-		ui.examine.process_mode=Node.PROCESS_MODE_ALWAYS;ui.examine.present({"name":{"text":"Server examine"},"description":{"text":"Received details"}});ui.examine.position=Vector2(90,200);await frames()
-		check(ui.examine.modal_lease.admits() and ui.examine.get_parent().get_parent().layer>menu.layer and not menu.modal_lease.admits(),"New examine is logically and visibly above the earlier MainMenu despite original baseline10/30")
-		var resume: Button=menu.native_frame.buttons.resumegamebutton;var hit_point:=resume.get_global_transform_with_canvas()*(resume.size*0.5)
+		# The fixture disables Gameplay processing. Enable the separate Examine
+		# asset and admission owner so the original panel can become clickable.
+		ui.examine.process_mode=Node.PROCESS_MODE_ALWAYS
+		ui.examine_skin.frame=painter
+		ui.examine_skin.process_mode=Node.PROCESS_MODE_ALWAYS
+		ui.present_examine({"kind":"examine","type":"placeable","targetId":77,"name":{"text":"Server examine"},"description":{"text":"Received details"}})
+		var examine_deadline:=Time.get_ticks_msec()+6000
+		while not ui.examine.is_visible_in_tree() and ui.examine.admission_failure.is_empty() and Time.get_ticks_msec()<examine_deadline:
+			await process_frame
+		var examine_cohort: Dictionary=ui.examine_skin.art_snapshot()
+		check(examine_cohort.ready and ui.examine.is_visible_in_tree() and not ui.examine.modal_lease.ticket.is_empty() and ui.examine.modal_lease.admits() and ui.examine.get_parent().get_parent().layer>menu.layer and not menu.modal_lease.admits(),"New examine is logically and visibly above the earlier MainMenu despite original baseline10/30")
+		var resume: Button=menu.native_frame.buttons.resumegamebutton
+		var hit_point:=resume.get_global_transform_with_canvas()*(resume.size*0.5)
+		# Overlap the actual description hitbox with Resume, away from Examine's buttons.
+		var description_center: Vector2=ui.examine.scroll.get_global_transform_with_canvas()*(ui.examine.scroll.size*0.5)
+		ui.examine.position+=hit_point-description_center
+		await frames()
 		var motion:=InputEventMouseMotion.new();motion.position=hit_point;motion.global_position=hit_point;surface.push_input(motion,true);await frames()
 		var hovered: Control=surface.gui_get_hovered_control()
-		hit_evidence={"point":str(hit_point),"hover":str(hovered.get_path()) if is_instance_valid(hovered) else null,"hoverClass":hovered.get_class() if is_instance_valid(hovered) else null,"examineRect":str(ui.examine.get_global_rect()),"resumeRect":str(resume.get_global_rect()),"mainAdmission":menu.modal_lease.admits(),"examineAdmission":ui.examine.modal_lease.admits()}
+		hit_evidence={"point":str(hit_point),"hover":str(hovered.get_path()) if is_instance_valid(hovered) else null,"hoverClass":hovered.get_class() if is_instance_valid(hovered) else null,"examineRect":str(ui.examine.get_global_rect()),"resumeRect":str(resume.get_global_rect()),"mainAdmission":menu.modal_lease.admits(),"examineAdmission":ui.examine.modal_lease.admits(),"examineCohort":examine_cohort}
 		check(is_instance_valid(hovered) and ui.examine.is_ancestor_of(hovered) and not hovered is Button,"Old Resume hit is explicitly inert top Examine content, not its valid Close control")
 		await click(surface,menu.native_frame.buttons.resumegamebutton)
 		check(menu.panel.visible and ui.examine.visible,"Lower registered menu cannot consume its old button hit behind examine")
-		ui.examine.reset();await click(surface,menu.native_frame.buttons.exitbutton)
-		check(menu.native_frame.confirmation.visible and menu.native_frame.confirmation_lease.admits() and not menu.modal_lease.admits(),"Physical original Exit opens a distinct confirmation lease sharing the explicit menu surface")
+		ui.examine.reset()
+		var restored_menu: bool=menu.modal_lease.ticket==before and menu.modal_lease.admits()
+		await click(surface,menu.native_frame.buttons.exitbutton)
+		check(restored_menu and menu.native_frame.confirmation.visible and menu.native_frame.confirmation_lease.admits() and not menu.modal_lease.admits(),"Physical original Exit opens a distinct confirmation lease sharing the explicit menu surface")
 		await click(surface,menu.native_frame.confirm_buttons.cancelbutton)
 		check(not menu.native_frame.confirmation.visible and menu.panel.visible and menu.modal_lease.ticket==before and menu.modal_lease.admits(),"Physical original Cancel retires confirmation before restoring the same parent menu")
 		var loading:=Loading.new();surface.add_child(loading);loading.begin(7,"Fixture area")

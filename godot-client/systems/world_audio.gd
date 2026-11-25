@@ -63,6 +63,9 @@ func play(id: int) -> void:
 	_stop_player(row);row.requested = true
 	if by_name.has(row.name):
 		row.resourceId = by_name[row.name];stats.cacheHits += 1
+		if resources[row.resourceId].failed:
+			_fail_voice(row)
+			return
 	else:
 		resource_serial += 1;row.resourceId = resource_serial
 		resources[resource_serial] = {"id":resource_serial,"name":row.name,"transfer":Transfer.new(),"stream":null,"metadata":{},"failed":false,"last":Time.get_ticks_usec(),"bytes":0}
@@ -115,8 +118,11 @@ func _fail_resource(resource: Dictionary) -> void:
 	resource.failed = true;resource.transfer.clear();stats.failed += 1
 	for row in voices.values().duplicate():
 		if row.resourceId != resource.id:continue
-		row.requested = false;_observe(row,"failed")
-		if row.oneShot:destroy(row.id)
+		_fail_voice(row)
+
+func _fail_voice(row: Dictionary) -> void:
+	row.requested = false;_observe(row,"failed")
+	if row.oneShot:destroy(row.id)
 
 func _listener() -> void:
 	if not client.pivots.has(client.controlled_id) or not is_instance_valid(client.owner_scene.camera):listener_state.clear();return
