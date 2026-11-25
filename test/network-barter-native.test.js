@@ -44,3 +44,31 @@ test('both native participant roles keep B as own offer, A as remote, independen
   world.apply({kind:'barter-lock',initiator:true,value:true});assert.equal(world.barter.open,false);world.apply({kind:'barter-start',firstId:0xffffffff,secondId:0x80000013});assert.equal(world.barter.serial,serial+1);assert.equal(world.barter.ownAccepted,false);
  }
 });
+test('authoritative direct control changes retire the old barter view without changing item ownership data',()=>{
+ const world=new NetworkWorld(),oldActor=0xffffffff,partner=0x80000013,newActor=0x80000026;
+ world.areaId=0x80000000;
+ const control={kind:'object-control',major:5,minor:2,playerId:7};
+ world.apply({...control,objectId:oldActor});
+ world.apply({kind:'barter-start',firstId:oldActor,secondId:partner});
+ const serial=world.barter.serial,ownItem=0x80000002,otherItem=0x80000003;
+ world.applyObjectUpdates([{action:'inventory',channel:'B',operation:'A',id:ownItem,x:1,y:2,item:{baseItem:22}},{action:'inventory',channel:'A',operation:'A',id:otherItem,x:2,y:3,item:{baseItem:24}}]);
+ world.apply({...control,objectId:oldActor});
+ assert.equal(world.barter.open,true);
+ assert.equal(world.inventories.get('B').entries[0].id,ownItem);
+
+ world.apply({...control,objectId:newActor});
+ assert.equal(world.localObjectId,newActor);
+ assert.equal(world.barter.open,false);
+ assert.equal(world.barter.serial,serial);
+ assert.equal(world.inventories.has('A'),false);
+ assert.equal(world.inventories.has('B'),false);
+ assert.equal(world.registry.get(ownItem).inventoryLocation,null);
+ assert.equal(world.registry.get(otherItem).inventoryLocation,null);
+ assert.equal(world.registry.get(ownItem).item.baseItem,22);
+ assert.equal(world.registry.get(otherItem).item.baseItem,24);
+ assert.equal(world.apply({kind:'barter-accept',initiator:true,value:true}),false);
+
+ world.apply({kind:'barter-start',firstId:newActor,secondId:partner});
+ assert.equal(world.barter.serial,serial+1);
+ assert.equal(world.barter.ownAccepted,false);
+});

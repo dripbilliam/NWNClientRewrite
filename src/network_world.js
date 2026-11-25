@@ -121,6 +121,7 @@ export class NetworkWorld {
    if(message.major===5&&message.minor===2){
     if(this.localObjectId!==message.objectId){
      this.scriptTargeting=null;
+     retireNetworkBarter(this);
      this.apply({kind:'store-close'});
     }
     this.localObjectId=message.objectId;
