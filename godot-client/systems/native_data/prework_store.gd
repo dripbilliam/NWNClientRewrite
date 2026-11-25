@@ -4,7 +4,7 @@ extends RefCounted
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
 const Palette=preload("res://systems/native_data/palette_texture.gd")
 const REVISION:="session-prework-v2"
-const MODEL_METADATA_REVISION:="native-part-bounds-1-tilefade-1-material-name-1"
+const MODEL_METADATA_REVISION:="native-part-bounds-1-tilefade-1-material-name-1-ascii-normals-1"
 const GARMENT_MATERIAL_REVISION:="garment-shared-material-5"
 # Preserve v1's identity across changes to cache locking/scheduling. This is
 # the original v1 store fingerprint, not a model processor. Format changes

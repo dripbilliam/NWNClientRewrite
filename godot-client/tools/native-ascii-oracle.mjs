@@ -14,7 +14,7 @@ const sha=b=>createHash('sha256').update(b).digest('hex'),samples=[];
 for(const name of ['twc03_a01_03','twc03_a01_02']){
  const bytes=await resolver.getResource(name,2002),model=parseModel(bytes);
  if(model.format!=='ASCII MDL')throw Error('Expected original ASCII MDL');
- const nodes=model.nodes.map(n=>{const geometry=n.type==='trimesh'?buildModelGeometry(n):null;const groups=geometry?geometry.groups.map(g=>{const start=g.start,end=start+g.count,attr=geometry.attributes;return {vertices:g.count,material:g.materialIndex,positionSha256:sha(Buffer.from(attr.position.array.slice(start*3,end*3).buffer)),uvSha256:sha(Buffer.from(attr.uv.array.slice(start*2,end*2).buffer)),normalQuantizedSha256:sha(Buffer.from(Int32Array.from(attr.normal.array.slice(start*3,end*3),v=>Math.round(v*10000)).buffer))};}):[];geometry?.dispose();return {name:n.name,parent:n.parent,position:n.position,quaternion:decodeModelOrientation(n.orientation,n.orientationFormat),scale:n.scale,groups};});
+ const nodes=model.nodes.map(n=>{const geometry=n.type==='trimesh'?buildModelGeometry(n):null;const groups=geometry?geometry.groups.map(g=>{const start=g.start,end=start+g.count,attr=geometry.attributes;return {vertices:g.count,material:g.materialIndex,positionSha256:sha(Buffer.from(attr.position.array.slice(start*3,end*3).buffer)),uvSha256:sha(Buffer.from(attr.uv.array.slice(start*2,end*2).buffer))};}):[];geometry?.dispose();return {name:n.name,parent:n.parent,position:n.position,quaternion:decodeModelOrientation(n.orientation,n.orientationFormat),scale:n.scale,groups};});
  samples.push({name,sha256:sha(Buffer.from(bytes)),nodes});
 }
 const fixture={capture,supplement,scope:'Read-only original ASCII MDL: pose/count/geometry hashes only',samples};

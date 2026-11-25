@@ -59,6 +59,7 @@ func parse(text: String) -> Dictionary:
 			current.ambient=[1.0,1.0,1.0]
 			current.material_bitmap=""
 			current.material_name=""
+			current.normals=[]
 			by_name[name]=source_nodes.size()
 			var folded:=name.to_lower()
 			if not by_folded_name.has(folded): by_folded_name[folded]=[]
@@ -77,7 +78,7 @@ func parse(text: String) -> Dictionary:
 			continue
 		# Emitter 'render Normal' is a mode, not a mesh visibility number.
 		if command=="render" and current.kind=="emitter": continue
-		if command in ["verts","tverts","faces"]:
+		if command in ["verts","tverts","faces","normals"]:
 			if tokens.size()!=2 or not tokens[1].is_valid_int() or tokens[1].to_int()<0 or tokens[1].to_int()>1000000: reject("Invalid ASCII MDL array count"); return {}
 			array_kind=command; remaining=tokens[1].to_int(); continue
 		if command in ["position","orientation","scale","alpha","selfillumcolor","ambient","diffuse","render","shadow","transparencyhint"]:
@@ -135,33 +136,100 @@ func emit_node(index: int, depth: int) -> int:
 	active.erase(index); return output_index
 func geometry(source: Dictionary) -> Array:
 	if source.faces.is_empty() and source.verts.is_empty(): return []
+	var normals := corner_normals(source)
+	if not failure.is_empty(): return []
 	var groups: Array=[]; var material_indices: Array=[]
 	var native_metadata:=native_mesh_metadata(source)
 	# Every face group keeps the material identity of its physical source node.
 	native_metadata.material_bitmap=source.material_bitmap
 	native_metadata.material_name=source.material_name
-	for face in source.faces:
-		if face.size()<7: reject("ASCII MDL face has too few fields"); return []
+	for face_index in source.faces.size():
+		var face: Array = source.faces[face_index]
 		var material_index:=0
 		if face.size()>7 and float(face[7])==floor(float(face[7])) and face[7]>=0 and face[7]<source.textures.size(): material_index=int(face[7])
 		if material_indices.is_empty() or material_indices.back()!=material_index:
 			groups.append({"vertices":PackedFloat32Array(),"normals":PackedFloat32Array(),"uv":[PackedFloat32Array()],"indices":PackedInt32Array(),"collision_indices":PackedInt32Array(),"textures":[source.textures[material_index]] if not source.textures.is_empty() else [],"render":float(source.render)!=0 and source.kind!="aabb","shadow":float(source.shadow)!=0,"transparency_hint":float(source.transparencyhint)!=0,"diffuse":source.diffuse}); material_indices.append(material_index)
 			groups.back().merge(native_metadata,true)
-		var group: Dictionary=groups.back(); var vertices: Array=[]
+		var group: Dictionary=groups.back()
 		group.ambient=source.ambient
 		if source.kind=="animmesh" and not group.has("animation_vertices"): group.animation_vertices=[]; group.animation_uv=[]
 		for corner in 3:
-			var vertex_index:=int(face[corner])
-			if float(face[corner])!=vertex_index or vertex_index<0 or vertex_index>=source.verts.size() or source.verts[vertex_index].size()<3: reject("ASCII MDL vertex index invalid"); return []
-			var v: Array=source.verts[vertex_index]; vertices.append(Vector3(v[0],v[1],v[2]))
-		var normal: Vector3=(vertices[1]-vertices[0]).cross(vertices[2]-vertices[0]).normalized()
-		for corner in 3:
-			var vertex: Vector3=vertices[corner]; var uv_index:=int(face[4+corner]); var uv:=Vector2.ZERO
+			var vertex: Array = source.verts[int(face[corner])]
+			var normal := normals[face_index * 3 + corner]
+			var uv_index:=int(face[4+corner]); var uv:=Vector2.ZERO
 			if float(face[4+corner])!=uv_index: reject("ASCII MDL UV index invalid"); return []
 			if uv_index>=0 and uv_index<source.tverts.size() and source.tverts[uv_index].size()>=2: uv=Vector2(source.tverts[uv_index][0],source.tverts[uv_index][1])
 			if source.kind=="animmesh": group.animation_vertices.append(int(face[corner])); group.animation_uv.append(uv_index)
-			group.vertices.append_array(PackedFloat32Array([vertex.x,vertex.y,vertex.z])); group.normals.append_array(PackedFloat32Array([normal.x,normal.y,normal.z])); group.uv[0].append_array(PackedFloat32Array([uv.x,uv.y])); group.indices.append(group.indices.size()); group.collision_indices.append(group.collision_indices.size())
+			group.vertices.append_array(PackedFloat32Array([vertex[0],vertex[1],vertex[2]])); group.normals.append_array(PackedFloat32Array([normal.x,normal.y,normal.z])); group.uv[0].append_array(PackedFloat32Array([uv.x,uv.y])); group.indices.append(group.indices.size()); group.collision_indices.append(group.collision_indices.size())
 	return groups
+func corner_normals(source: Dictionary) -> PackedVector3Array:
+	var faces: Array = source.faces
+	var authored: Array = source.normals
+	var result := PackedVector3Array()
+	result.resize(faces.size() * 3)
+	var area_normals := PackedVector3Array()
+	var masks := PackedInt64Array()
+	var incident: Dictionary = {}
+	var positions: Array[Vector3] = [Vector3.ZERO,Vector3.ZERO,Vector3.ZERO]
+	for face_index in faces.size():
+		var face: Array = faces[face_index]
+		if face.size() < 7:
+			reject("ASCII MDL face has too few fields")
+			return result
+		for corner in 3:
+			var vertex_index := int(face[corner])
+			if float(face[corner]) != vertex_index or vertex_index < 0 or vertex_index >= source.verts.size() or source.verts[vertex_index].size() < 3:
+				reject("ASCII MDL vertex index invalid")
+				return result
+			if not authored.is_empty():
+				if vertex_index >= authored.size() or authored[vertex_index].size() < 3:
+					reject("ASCII MDL normal index invalid")
+					return result
+				var value: Array = authored[vertex_index]
+				result[face_index * 3 + corner] = Vector3(value[0],value[1],value[2])
+			else:
+				var value: Array = source.verts[vertex_index]
+				positions[corner] = Vector3(value[0],value[1],value[2])
+		if not authored.is_empty(): continue
+		area_normals.append((positions[1] - positions[0]).cross(positions[2] - positions[1]))
+		var mask := int(face[3]) & 0xffffffff
+		masks.append(mask)
+		if mask == 0: continue
+		# The original scan checks candidate corners in reverse order.
+		for corner in [2,1,0]:
+			var vertex_index := int(face[corner])
+			if not incident.has(vertex_index): incident[vertex_index] = []
+			var entries: Array = incident[vertex_index]
+			if entries.is_empty() or entries.back().x != face_index:
+				entries.append(Vector2i(face_index,corner))
+	if not authored.is_empty(): return result
+	# ProcessVerts visits source faces before material partitioning. It reuses
+	# the first compatible prior corner or sums the later raw cross products.
+	for face_index in faces.size():
+		var unit_normal := area_normals[face_index].normalized()
+		var mask := masks[face_index]
+		if mask == 0:
+			for corner in 3:
+				result[face_index * 3 + corner] = unit_normal
+			continue
+		for corner in 3:
+			var sum := area_normals[face_index]
+			var normal := unit_normal
+			var reused := false
+			var vertex_index := int(faces[face_index][corner])
+			for adjacent: Vector2i in incident[vertex_index]:
+				if adjacent.x == face_index or (masks[adjacent.x] & mask) == 0: continue
+				if adjacent.x < face_index:
+					var previous := result[adjacent.x * 3 + adjacent.y]
+					if unit_normal.dot(previous) >= -0.99:
+						normal = previous
+						reused = true
+						break
+				else:
+					sum += area_normals[adjacent.x]
+			if not reused and sum.length_squared() != 0.0: normal = sum.normalized()
+			result[face_index * 3 + corner] = normal
+	return result
 func native_tilefade_field(source: Dictionary,text: String) -> void:
 	# Parse(char*,int&)0a0280: %d first; return0 then token TRUE/FALSE;
 	# unknown/empty retains the previous field. Process every occurrence rather
