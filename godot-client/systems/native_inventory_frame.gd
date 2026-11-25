@@ -12,6 +12,8 @@ var models_requested:=false
 var layout_ready:=false
 var failure:=""
 var stage: Control
+var backdrop: ColorRect
+var backdrop_opacity:=0.0
 var container_stage: Control
 var container_drag: Control
 var full: TextureRect
@@ -66,6 +68,11 @@ func activate() -> void:
 	if layout_ready or closed or definition.is_empty() or not equipment.layout_ready: return
 	layout_ready=true; inventory.window_column.hide(); inventory.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 	stage=Control.new(); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE; inventory.add_child(stage)
+	backdrop=ColorRect.new()
+	backdrop.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	backdrop.size=definition.size
+	stage.add_child(backdrop)
+	set_backdrop_opacity(backdrop_opacity)
 	full=image(str(definition.resource),Rect2(Vector2.ZERO,definition.size),stage)
 	gap=ColorRect.new(); gap.color=Color.BLACK; gap.mouse_filter=Control.MOUSE_FILTER_IGNORE; stage.add_child(gap)
 	top=TextureRect.new(); bottom=TextureRect.new()
@@ -109,6 +116,13 @@ func activate() -> void:
 	# The frame may finish loading after the first icon draw. Keep its art below
 	# the transparent retained scene, as bitmap icons inside slots already are.
 	if is_instance_valid(inventory.scene_host): inventory.scene_host.move_to_front()
+
+func set_backdrop_opacity(opacity: float) -> void:
+	backdrop_opacity=clampf(opacity,0.0,1.0)
+	if not is_instance_valid(backdrop): return
+	backdrop.color=Color(0.045,0.035,0.025,backdrop_opacity)
+	backdrop.visible=backdrop_opacity>0.0
+
 func configure_repository(repository,data: Dictionary,parent: Control) -> void:
 	relocate(repository,parent,data.rect); repository.cell_size=Layout.CELL; repository.bottom_origin=true; repository.native_art=true; repository.clip_contents=true; repository.queue_redraw()
 func split_background() -> void:
@@ -124,6 +138,7 @@ func refresh() -> void:
 	var opened:=int(inventory.state.get("container",{}).get("ownerId",2130706432))!=2130706432
 	extra=80.0 if inventory.creature_slots and not opened else 0.0
 	var size: Vector2=definition.size+Vector2(0,extra); stage.custom_minimum_size=size; inventory.custom_minimum_size=size; inventory.size=size
+	backdrop.size=size
 	inventory.equipment.position=definition.equipment-equipment.origin(); inventory.equipment.size=equipment.definition.bounds.size+Vector2(0,extra); inventory.equipment.visible=not opened
 	inventory.heading.visible=not opened; inventory.container_box.hide(); container_stage.visible=opened
 	var rect:=shift(definition.repository.rect); inventory.repository.position=rect.position; inventory.repository.size=rect.size

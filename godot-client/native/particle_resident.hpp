@@ -15,14 +15,28 @@ GDExtensionMethodBindPtr node_transform;
 void* node_tag;
 GDExtensionPtrBuiltInMethod basis_orthonormal,basis_quaternion,basis_scale;
 GDExtensionPtrGetter transform_basis,transform_origin,basis_columns[3];
-#include "particle_scene_boundary.hpp"
+std::string engine_string(const EngineVar& value);
 struct EnginePose {V3 position{};Q4 quaternion{};float scale=1,maximum_scale=1;};
-EnginePose read_engine_pose(uint64_t id,particle_pose_cache::Conversion<EnginePose>* cache=nullptr){
- alignas(8) std::array<float,12> transform{};if(!particle_scene_boundary::pose(id,transform)){auto object=instance_from_id(id);if(!object||!cast_object(object,node_tag))throw std::runtime_error("Native particle pose owner is absent or no longer Node3D");ptrcall(node_transform,object,nullptr,transform.data());}
+#include "particle_pose_handle.hpp"
+#include "particle_scene_boundary.hpp"
+#include "particle_frustum.hpp"
+EnginePose read_engine_pose(uint64_t id,particle_pose_cache::Conversion<EnginePose>* cache=nullptr,particle_pose_handle::Endpoint* endpoint=nullptr){
  const auto convert=[](const std::array<float,12>& transform){alignas(8) std::array<float,9> basis{},orthonormal{};alignas(8) V3 origin{},scale{};alignas(8) std::array<float,4> q{};
  transform_basis(transform.data(),basis.data());transform_origin(transform.data(),origin.data());basis_orthonormal(basis.data(),nullptr,orthonormal.data(),0);basis_quaternion(orthonormal.data(),nullptr,q.data(),0);basis_scale(basis.data(),nullptr,scale.data(),0);
  EnginePose result;result.position={origin[0],-origin[2],origin[1]};result.quaternion={q[3],q[0],-q[2],q[1]};result.scale=scale[0];
  float maximum=0;for(auto getter:basis_columns){V3 column{};getter(basis.data(),column.data());maximum=std::max(maximum,std::sqrt((column[0]*column[0]+column[1]*column[1])+column[2]*column[2]));}result.maximum_scale=maximum;return result;};
+ alignas(8) std::array<float,12> transform{};
+ if (!particle_scene_boundary::pose(id,transform)){
+  auto object=particle_pose_handle::pose_node(id,endpoint);
+  if(!object)throw std::runtime_error("Native particle pose owner is absent or no longer Node3D");
+  if(cache&&endpoint&&particle_pose_handle::dirty_active()){
+   if(auto* memo=endpoint->pose_memo()){
+    if(const auto* pose=particle_pose_handle::read_if_proven(id,object,*memo,*cache,transform,convert))return *pose;
+   }
+  }
+  ptrcall(node_transform,object,nullptr,transform.data());
+ }
+ particle_pose_handle::record_pose_read();
  return cache?cache->read(id,transform,convert):convert(transform);
 }
 std::string engine_string(const EngineVar& value){
@@ -281,7 +295,13 @@ struct Owner {
  ParticleStreams staging;int kind=-1;int64_t allocations=0,constant_hits=0,sampled_channels=0,missing_chunks=0;bool configured=false,use_parameters=false,cache_constants=true,field_keys=true;
  uint64_t pose_id=0,source_id=0;bool cache_engine_pose=true,cx_target_motion=false;
  particle_pose_cache::Conversion<EnginePose> pose_cache,source_cache,target_cache;
+ particle_pose_handle::Endpoint pose_handle,source_handle,target_handle;
  bool skip_empty_clip_lookups=false,has_any_clip_channels=true,empty_clip_map_sealed=false;uint64_t clip_configure_depth=0;
+ struct AuthoredBounds {
+  float radius=0,maximum_size=0,extent_margin=0;
+  bool radius_valid=false,padding_valid=false;
+ };
+ mutable AuthoredBounds authored_bounds;
  std::atomic<uint64_t> clip_sample_calls{0},clip_lookup_calls{0},empty_clip_lookup_skips{0},preconfigure_sample_calls{0};
  EngineVar empty_clip_info()const{
   auto out=EngineVar::dictionary();size_t channel_count=0;for(const auto& clip:clips)channel_count+=clip.second.size();
@@ -297,7 +317,8 @@ struct Owner {
  float parameter_float(hot_parameters::Key key)const{return static_cast<float>(parameter_get(key).number());}
  int64_t parameter_integer(hot_parameters::Key key)const{const auto value=parameter_get(key).number();if(!std::isfinite(value)||value<-2147483648.0||value>2147483647.0)throw std::runtime_error("Native owner signed field out of range");return static_cast<int64_t>(value);}
  EngineVar hot_parameter_info()const{auto out=EngineVar::dictionary();::set(out,"enabled",EngineVar::boolean(hot_bindings!=nullptr));auto rows=::array_empty();if(hot_bindings)for(size_t index=0;index<hot_parameters::COUNT;++index){const auto& field=hot_bindings->fields[index];auto row=EngineVar::dictionary();::set(row,"name",EngineVar::text(hot_parameters::names[index]));::set(row,"reads",EngineVar::integer(static_cast<int64_t>(field.reads)));::set(row,"hits",EngineVar::integer(static_cast<int64_t>(field.hits)));::set(row,"rebinds",EngineVar::integer(static_cast<int64_t>(field.rebinds)));::set(row,"absent",EngineVar::integer(static_cast<int64_t>(field.absent)));::set(row,"uncacheable",EngineVar::integer(static_cast<int64_t>(field.uncacheable)));::method(rows,"append",{row});}::set(out,"fields",rows);return out;}
- EnginePose read_pose(bool source=false){return read_engine_pose(source?source_id:pose_id,cache_engine_pose?(source?&source_cache:&pose_cache):nullptr);}
+ EnginePose read_pose(bool source=false){return read_engine_pose(source?source_id:pose_id,cache_engine_pose?(source?&source_cache:&pose_cache):nullptr,source?&source_handle:&pose_handle);}
+ bool source_exists()const{return particle_pose_handle::source_exists(source_id,source_handle);}
  void update_cx_target(const EngineVar& provider,const EnginePose& pose){
   auto callable=provider;
   const auto identity=static_cast<uint64_t>(::method(callable,"call").integer());
@@ -305,7 +326,7 @@ struct Owner {
   if(identity!=target.identity){target.bolt_ready=false;target.bolt_elapsed=0;}
   target.identity=identity;
   if(!identity)return;
-  const auto endpoint=read_engine_pose(identity,&target_cache);
+  const auto endpoint=read_engine_pose(identity,&target_cache,&target_handle);
   target.position=endpoint.position;
   target.orientation=endpoint.quaternion;
   const auto parameter=[this](const char* name){
@@ -346,9 +367,6 @@ struct Owner {
   alignas(8) uint8_t raw[16];to[GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY](raw,bytes.data);std::memcpy(next.planes.data(),packed_index(raw,0),96);ptr_destructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY)(raw);
   for(auto number:next.planes)if(!std::isfinite(number))throw std::runtime_error("Native view plane is non-finite");cached=next;return cached;
  }
- bool outside(const View& camera,const V3& center,float radius)const{
-  if(!std::isfinite(radius)||radius<0)return false;for(size_t n=0;n<6;++n){const auto at=n*4;const float distance=(camera.planes[at]*center[0]+camera.planes[at+1]*center[1])+camera.planes[at+2]*center[2]-camera.planes[at+3];if(distance>radius+0.001f)return true;}return false;
- }
  float radius(int64_t flags,const V3& wind=V3{})const{
   if(flags&1)return 1000;const float life=typed_frame?compact_state.lifeExp:f(state,particle_field::lifeExp),mass=typed_frame?compact_state.mass:f(state,particle_field::mass),acceleration=std::abs(static_cast<float>(static_cast<double>(mass)*-9.81));
   const float wind_speed=std::sqrt((wind[0]*wind[0]+wind[1]*wind[1])+wind[2]*wind[2]);
@@ -359,26 +377,52 @@ struct Owner {
   const float x=std::max(std::max(start,end),mid("sizemid"))*0.5f;
   float y=std::max(std::max(start_y,end_y),mid("sizemid_y"))*0.5f;if(y<=0)y=x;return std::sqrt(x*x+y*y)+travel;
  }
- bool culled(const View& camera,const V3& origin,int64_t source_flags,float scale,float& result_radius,const V3& wind=V3{})const{
+ float windless_authored_radius(int64_t flags) const {
+  if (flags & 1) return 1000.0f;
+  if (!authored_bounds.radius_valid) {
+   authored_bounds.radius=radius(flags);
+   authored_bounds.radius_valid=true;
+  }
+  return authored_bounds.radius;
+ }
+ void invalidate_authored_bounds() { authored_bounds={}; }
+ bool culled(const View& camera,const V3& origin,int64_t source_flags,float scale,float& result_radius,const V3& wind=V3{},bool reuse_authored_bounds=false)const{
   const V3 center{origin[0],origin[2],-origin[1]};
-  if(!outside(camera,center,0)){result_radius=0;return false;}
-  float bound=radius(source_flags,wind)*scale;result_radius=bound;if((typed_frame?compact_state.lifeExp:f(state,particle_field::lifeExp))<0||!outside(camera,center,bound))return false;
-  const auto mid=[&](const char* name){const auto key=std::strcmp(name,"sizemid")==0?hot_parameters::SIZE_MID:hot_parameters::SIZE_MID_Y;return parameter_has(key)?std::abs(parameter_float(key)):0.0f;};
-  const float padding=std::max({std::abs(typed_frame?compact_state.sizeStart:f(state,particle_field::sizeStart)),std::abs(typed_frame?compact_state.sizeEnd:f(state,particle_field::sizeEnd)),mid("sizemid"),std::abs(typed_frame?compact_state.sizeStartY:f(state,particle_field::sizeStartY)),std::abs(typed_frame?compact_state.sizeEndY:f(state,particle_field::sizeEndY)),mid("sizemid_y")})*scale*2.0f;
-  bound+=padding+std::max(std::abs(typed_frame?compact_state.xSize:f(state,particle_field::xSize)),std::abs(typed_frame?compact_state.ySize:f(state,particle_field::ySize)))*0.02f;
+  particle_frustum::Separation separation(camera.planes,center);
+  if(!separation.outside(0)){result_radius=0;return false;}
+  float bound=(reuse_authored_bounds?windless_authored_radius(source_flags):radius(source_flags,wind))*scale;
+  result_radius=bound;
+  if((typed_frame?compact_state.lifeExp:f(state,particle_field::lifeExp))<0||!separation.outside(bound))return false;
+  float maximum_size,extent_margin;
+  if(reuse_authored_bounds&&authored_bounds.padding_valid){
+   maximum_size=authored_bounds.maximum_size;
+   extent_margin=authored_bounds.extent_margin;
+  }else{
+   const auto mid=[&](const char* name){const auto key=std::strcmp(name,"sizemid")==0?hot_parameters::SIZE_MID:hot_parameters::SIZE_MID_Y;return parameter_has(key)?std::abs(parameter_float(key)):0.0f;};
+   maximum_size=std::max({std::abs(typed_frame?compact_state.sizeStart:f(state,particle_field::sizeStart)),std::abs(typed_frame?compact_state.sizeEnd:f(state,particle_field::sizeEnd)),mid("sizemid"),std::abs(typed_frame?compact_state.sizeStartY:f(state,particle_field::sizeStartY)),std::abs(typed_frame?compact_state.sizeEndY:f(state,particle_field::sizeEndY)),mid("sizemid_y")});
+   extent_margin=std::max(std::abs(typed_frame?compact_state.xSize:f(state,particle_field::xSize)),std::abs(typed_frame?compact_state.ySize:f(state,particle_field::ySize)))*0.02f;
+   if(reuse_authored_bounds){
+    authored_bounds.maximum_size=maximum_size;
+    authored_bounds.extent_margin=extent_margin;
+    authored_bounds.padding_valid=true;
+   }
+  }
+  const float padding=maximum_size*scale*2.0f;
+  bound+=padding+extent_margin;
   const auto distance=[&](const V3& point){const auto delta=subtract(origin,point);return std::sqrt((delta[0]*delta[0]+delta[1]*delta[1])+delta[2]*delta[2])+padding;};
   if(compact_records){for(const auto part:compact_pool.active){bound=std::max(bound,distance(part->position10));if((typed_frame?compact_state.renderMode1a8:i(state,particle_field::renderMode1a8))==6)bound=std::max(bound,distance(part->trail64));}}
   else{const auto active=get(get(state,particle_field::active188),particle_field::records);for(const auto& part:active.container->items){bound=std::max(bound,distance(values<3>(get(part,particle_field::position10))));if(i(state,particle_field::renderMode1a8)==6)bound=std::max(bound,distance(values<3>(get(part,particle_field::trail64))));}}
-  result_radius=bound;return outside(camera,center,bound);
+  result_radius=bound;return separation.outside(bound);
  }
  void configure(const EngineVar& config){
   if(configured)throw std::runtime_error("Native particle owner already configured");
+  invalidate_authored_bounds();
   if(clip_configure_depth==UINT64_MAX)throw std::runtime_error("Native particle configure depth overflow");
   struct ConfigureScope {Owner& owner;explicit ConfigureScope(Owner& value):owner(value){++owner.clip_configure_depth;owner.empty_clip_map_sealed=false;}~ConfigureScope(){--owner.clip_configure_depth;}} configure_scope(*this);
   cache_engine_pose=!::has(config,"cacheEnginePose")||::get(config,"cacheEnginePose").boolean();
   state=Var(::get(config,"state"));const auto update=engine_string(::get(config,"update"));kind=update=="fountain"?0:update=="explosion"?1:update=="single"?2:update=="lightning"?3:-1;
   cx_target_motion=::has(config,"cxTargetMotion")&&::get(config,"cxTargetMotion").boolean();
-  if(::has(config,"poseId")){pose_id=static_cast<uint64_t>(::get(config,"poseId").integer());source_id=static_cast<uint64_t>(::get(config,"sourceId").integer());if(!pose_id||!source_id)throw std::runtime_error("Native particle pose identity is invalid");read_engine_pose(pose_id);read_engine_pose(source_id);}
+  if(::has(config,"poseId")){pose_id=static_cast<uint64_t>(::get(config,"poseId").integer());source_id=static_cast<uint64_t>(::get(config,"sourceId").integer());if(!pose_id||!source_id)throw std::runtime_error("Native particle pose identity is invalid");read_engine_pose(pose_id,nullptr,&pose_handle);read_engine_pose(source_id,nullptr,&source_handle);}
   if(kind<0||(!cx_target_motion&&((i(state,particle_field::flags)&1)||kind==3)))throw std::runtime_error("Target-linked emitters require CX particle mode");
   use_parameters=::has(config,"parameters");if(use_parameters){parameters=Var(::get(config,"parameters"));prepare_parameters(state,parameters);}
   cache_constants=!::has(config,"cacheConstants")||::get(config,"cacheConstants").boolean();
@@ -434,7 +478,7 @@ struct Owner {
   const bool profile=::has(input,"profile")&&::get(input,"profile").boolean();using Clock=std::chrono::steady_clock;auto phase=profile?Clock::now():Clock::time_point{};double controls_ms=0,channels_ms=0,admission_ms=0,simulation_ms=0,vertices_ms=0,chunks_ms=0;
   const auto finish=[&](double& duration){if(profile){const auto now=Clock::now();duration=std::chrono::duration<double,std::milli>(now-phase).count();phase=now;}};
   sample(engine_string(::get(input,"clip")),::f(input,"time"));finish(controls_ms);
-  if(::has(input,"patch")){auto patch=::get(input,"patch"),names=::method(patch,"keys");for(int64_t n=0;n<::size(names);++n){const auto name=engine_string(::at(names,n));set(state,name.c_str(),Var(::get(patch,name.c_str())));if(typed_frame)compact_particle::apply_emitter_field(compact_state,state,{name.c_str(),field_index(name.c_str())});}}
+  if(::has(input,"patch")){invalidate_authored_bounds();auto patch=::get(input,"patch"),names=::method(patch,"keys");for(int64_t n=0;n<::size(names);++n){const auto name=engine_string(::at(names,n));set(state,name.c_str(),Var(::get(patch,name.c_str())));if(typed_frame)compact_particle::apply_emitter_field(compact_state,state,{name.c_str(),field_index(name.c_str())});}}
   if(use_parameters&&parameter_has(hot_parameters::DETONATE)&&parameter_integer(hot_parameters::DETONATE)!=0){set(state,particle_field::detonate108,parameter_get(hot_parameters::DETONATE));if(typed_frame)compact_state.detonate108=static_cast<int32_t>(parameter_integer(hot_parameters::DETONATE));set_int(parameters,"detonate",0);}
   if(::has(input,"detonate")&&::get(input,"detonate").boolean()){set_int(state,particle_field::detonate108,1);if(typed_frame)compact_state.detonate108=1;}
   Var frame_pose;EnginePose native_pose;float frame_scale=1;

@@ -42,7 +42,7 @@ function hostSource(original, config) {
  let source = original;
  source = one(source, "const performanceOptions=clientFlags.resolvePerformanceOptions(process.argv.slice(2),{env:process.env});", 'const privateTracyRuntime=require(' + JSON.stringify(path.join(config.view, 'tools/native-performance-runtime.cjs')) + ');\nconst performanceOptions=privateTracyRuntime.decorateOptions(clientFlags.resolvePerformanceOptions(process.argv.slice(2),{env:process.env}));');
  source = one(source, "const runtimeSelection=(await require('./native-performance-runtime.cjs').selectPerformanceRuntime(project,performanceOptions.runtime))??await require('./native-engine-runtime.cjs').selectNativeRuntime(project,engineRuntime,enginePackage);", 'const runtimeSelection=await privateTracyRuntime.selectPerformanceRuntime(' + JSON.stringify(config.view) + ',performanceOptions.runtime);');
- source = one(source, "...(engineRuntime==='editor'?['--path',project]:[])", "...(engineRuntime==='editor'?['--path'," + JSON.stringify(config.view) + ']:[])');
+ source = one(source, "...(runtimeUsesProject?['--path',project]:[])", "...(runtimeUsesProject?['--path'," + JSON.stringify(config.view) + ']:[])');
  source = one(source, 'featureManifest.createStartupManifest({run,project,runtime:runtimeSelection', 'featureManifest.createStartupManifest({run,project:' + JSON.stringify(config.view) + ',runtime:runtimeSelection');
  source = one(source, 'nativeArgs.unshift(...performanceOptions.engineArguments);', 'nativeArgs.push(' + ['render-preferences', 'menu-layout', 'lobby-preferences'].map((name, index) => JSON.stringify('--' + name + '=' + path.join(config.userdata, ['native-render-preferences.cfg', 'native-menu-layout.cfg', 'native-lobby-preferences.cfg'][index]))).join(',') + ');\n nativeArgs.unshift(...performanceOptions.engineArguments);');
  const spawn = "native=spawn(launch,launchArgs,{cwd:runtimeSelection.directory,windowsHide:true,env:{...process.env,...renderConfiguration.environment},stdio:['ignore','pipe','pipe']});";
@@ -51,6 +51,6 @@ function hostSource(original, config) {
 }
 function manualArguments(run) {
  assert(/^[a-z0-9-]+$/.test(run));
- return ['--run=' + run, '--public-servers', '--detailed-profiling=off'];
+ return ['--run=' + run, '--public-servers', '--performance-runtime=verified-native', '--particle-presentation=shared', '--detailed-profiling=off'];
 }
 module.exports = { one, runtimeSource, hostSource, manualArguments };

@@ -119,9 +119,10 @@ var maximum_stream_wave:=64
 var entry_prefetch_enabled:=true # Allow bounded base preparation before control; player request stays first.
 var entry_prefetch_limit:=8
 var entry_base_workers:=1
-var continuous_base_stream:=OS.get_cmdline_user_args().has("--base-scenery-stream=continuous")
+var base_scenery_workers:=8 if OS.get_cmdline_user_args().has("--base-scenery-workers=8") else 4
+var continuous_base_stream:=not OS.get_cmdline_user_args().has("--base-scenery-stream=waves")
 var base_stream_schedule=preload("res://systems/native_render/base_stream_schedule.gd").new()
-var reuse_base_scenery_owner:=OS.get_cmdline_user_args().has("--base-scenery-owner=retained") or OS.get_cmdline_user_args().has("--base-scenery-stream=continuous")
+var reuse_base_scenery_owner:=OS.get_cmdline_user_args().has("--base-scenery-owner=retained") or continuous_base_stream
 var retained_base_owner
 var retained_base_generation:=-1
 var base_scenery_population_known:=false
@@ -160,6 +161,10 @@ func set_priority_origin(value: Vector3) -> void:
 		if is_instance_valid(batch.owner): batch.owner.set_priority_origin(value)
 var adoption_budget_ms:=3.0
 var maximum_adoptions_per_frame:=8
+var adoption_callback_budget_stops:=0
+var adoption_pool_stops:=0
+var adoption_count_stops:=0
+var adoption_peak_per_callback:=0
 # Default-off experiment: only verified current base-wave candidates may use
 # unused time after the original first-eight allowance. No deadline reset.
 var base_admission_allowance:=OS.get_cmdline_user_args().has("--base-scenery-admission=timed")
@@ -734,6 +739,13 @@ func _profile_process(delta: float) -> void:
 		var owner=batch.owner; var actors: bool=batch.actors
 		var prepared: Dictionary=owner.actors if actors else owner.instances
 		if continuous_base_stream and batch.get("base_scenery",false):
+			# The stream can reject obsolete work before building an instance.
+			# Return its reservation so the same ID can be queued with its new key.
+			for id: int in owner.discarded_base_rows:
+				if batch.keys.has(id):
+					stats.stale_results+=1
+					release_base_reservation(batch,id)
+			owner.discarded_base_rows.clear()
 			for id in owner.stats.get("object_failures",{}).keys():
 				if batch.keys.has(id):
 					consume_stream_failure(batch,int(id),owner.stats.object_failures[id])
@@ -754,10 +766,16 @@ func _profile_process(delta: float) -> void:
 		if int(candidates[index].id)==controlled_id: candidates.push_front(candidates.pop_at(index)); break
 	for candidate in candidates:
 		if not can_publish_entry_object(int(candidate.id)):continue
-		if adoption_attempts>0 and Time.get_ticks_usec()-adoption_began>=pool.publication_callback_budget_us(int(adoption_budget_ms*1000)):break
-		if pool.has_method("can_publish") and not pool.can_publish(int(candidate.id)==controlled_id):break
+		if adoption_attempts>0 and Time.get_ticks_usec()-adoption_began>=pool.publication_callback_budget_us(int(adoption_budget_ms*1000)):
+			adoption_callback_budget_stops+=1
+			break
+		if pool.has_method("can_publish") and not pool.can_publish(int(candidate.id)==controlled_id):
+			adoption_pool_stops+=1
+			break
 		var current_base_admission:=base_admission_allowance and extra_base_admission_allowed(candidate,base_adopted)
-		if adopted>=maximum_adoptions_per_frame and not current_base_admission:break
+		if adopted>=maximum_adoptions_per_frame and not current_base_admission:
+			adoption_count_stops+=1
+			break
 		var batch: Dictionary=candidate.batch; var id:=int(candidate.id); var owner=batch.owner
 		var prepared: Dictionary=owner.actors if batch.actors else owner.instances
 		var install_began:=Time.get_ticks_usec()
@@ -796,6 +814,7 @@ func _profile_process(delta: float) -> void:
 		if stats.admissions.size()<512: stats.admissions.append({"id":id,"kind":int(desired[id].object.objectType),"elapsed_ms":(Time.get_ticks_usec()-opened_at)/1000.0})
 		release_base_reservation(batch,id)
 		if pool.has_method("publication_finished"):pool.publication_finished(install_began,id==controlled_id)
+	adoption_peak_per_callback=maxi(adoption_peak_per_callback,adopted)
 	for batch in batches.duplicate():
 		var owner=batch.owner; var actors: bool=batch.actors
 		var prepared: Dictionary=owner.actors if actors else owner.instances
@@ -937,14 +956,14 @@ func base_scenery_stream(objects: Array,before_control: bool):
 		if not retained_base_owner.wave_parked:
 			stats.errors.append("Retained base scenery owner still has an active wave");return null
 		if retained_base_generation==generation and retained_base_owner.can_resume_wave(catalog,pool,objects,area_id,cache_path):
-			# Four is the unchanged fresh ObjectStream default after control.
-			retained_base_owner.maximum_asset_workers=entry_base_workers if before_control else 4
+			retained_base_owner.maximum_asset_workers=entry_base_workers if before_control else base_scenery_workers
 			if retained_base_owner.resume_wave(catalog,pool,objects,area_id,cache_path):
 				stats.base_owner_reuses=int(stats.get("base_owner_reuses",0))+1;return retained_base_owner
 		stats.base_owner_reuse_refusals=int(stats.get("base_owner_reuse_refusals",0))+1
 		close_retained_base_owner()
 	var owner:=Objects.new()
-	if before_control:owner.maximum_asset_workers=entry_base_workers
+	owner.continuous_base_stream=continuous_base_stream
+	owner.maximum_asset_workers=entry_base_workers if before_control else base_scenery_workers
 	owner.entry_publication_allowed=can_publish_entry_object.bind(-1)
 	owner.admission_parent=self;add_child(owner);owner.configure(catalog,pool,objects,area_id,cache_path)
 	if reuse_base_scenery_owner:retained_base_owner=owner;retained_base_generation=generation
@@ -1050,18 +1069,18 @@ func pending_continuous_plan(inflight: Dictionary,before_control: bool,owner_slo
 	base_stream_schedule.set_origin(origin)
 	var capacity:=maxi(0,mini(64,mini(maximum_static_batch,maximum_base_static_batch)))
 	if not active.is_empty():
-		active.owner.maximum_asset_workers=entry_base_workers if before_control else 4
+		active.owner.maximum_asset_workers=entry_base_workers if before_control else base_scenery_workers
 		active.owner.assets.maximum_workers=maxi(1,active.owner.maximum_asset_workers)
 		capacity=maxi(0,capacity-active.keys.size())
 		if not active.owner.continuous_scope_current(catalog,pool,area_id,cache_path):capacity=0
 	elif owner_slots<=0:capacity=0
 	plan.base_statics=base_stream_schedule.peek(capacity,desired,inflight,installed,failed_objects)
 	if active.is_empty() and not plan.base_statics.is_empty():owner_slots-=1
-	# Only live-entity planning needs the legacy registry scan, and only after a
-	# receive/removal revision or live-owner completion, never on each base refill.
+	# The live appearance owner can provide its unresolved IDs even while
+	# base scenery is refilling through the separate schedule.
 	if before_control or owner_slots<=0 or not active.is_empty() and base_live_idle_revision==base_live_revision:return plan
 	var candidates: Array=[]
-	for id in desired:
+	for id in planning_source_ids():
 		var wanted: Dictionary=desired[id]
 		var flags:=int(wanted.get("base_progress_flags",0))
 		if flags&1 and not flags&64 or str(installed.get(id,""))==str(wanted.key) or inflight.has(id):continue
@@ -1290,6 +1309,11 @@ func snapshot(details: bool=true) -> Dictionary:
 	var state: Dictionary={}
 	state.base_scenery=base_scenery_snapshot()
 	state.base_admission=base_admission_snapshot()
+	state.base_admission.callback_budget_stops=adoption_callback_budget_stops
+	state.base_admission.pool_stops=adoption_pool_stops
+	state.base_admission.count_stops=adoption_count_stops
+	state.base_admission.max_adoptions_per_callback=adoption_peak_per_callback
+	state.base_admission.scenery_workers_after_control=base_scenery_workers
 	state.base_draw_merge=base_draw_merge.snapshot() if is_instance_valid(base_draw_merge) else {"enabled":false,"mode":"individual"}
 	state.continuous_base_stream={"enabled":continuous_base_stream,"mode":"continuous" if continuous_base_stream else "waves","reservation_limit":mini(64,mini(maximum_static_batch,maximum_base_static_batch)),"refills":int(stats.get("base_stream_refills",0)),"schedule":base_stream_schedule.snapshot()}
 	for field in stats:

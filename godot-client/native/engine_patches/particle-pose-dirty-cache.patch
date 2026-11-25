@@ -1,0 +1,79 @@
+diff --git a/scene/3d/node_3d.cpp b/scene/3d/node_3d.cpp
+--- a/scene/3d/node_3d.cpp
++++ b/scene/3d/node_3d.cpp
+@@ -31,9 +31,11 @@
+ #include "node_3d.h"
+ 
+ #include "core/config/engine.h"
++#include "core/extension/gdextension.h"
+ #include "core/math/transform_interpolator.h"
+ #include "core/object/callable_mp.h"
+ #include "core/object/class_db.h"
++#include "core/os/thread.h"
+ #include "scene/3d/visual_instance_3d.h"
+ #include "scene/main/scene_tree.h"
+ #include "scene/main/viewport.h"
+@@ -41,6 +43,13 @@
+ #include "servers/display/accessibility_server.h"
+ #include "servers/rendering/rendering_server.h"
+ 
++#include <cstring>
++
++namespace {
++// Has one consumer: the shared, lifetime-bound native particle pose cache.
++constexpr uint32_t NWN_PARTICLE_POSE_DIRTY = 1U << 4;
++} // namespace
++
+ /*
+ 
+  possible algorithms:
+@@ -977,6 +986,8 @@ Vector<Ref<Node3DGizmo>> Node3D::get_gizmos() const {
+ }
+ 
+ void Node3D::_replace_dirty_mask(uint32_t p_mask) const {
++	// A whole-mask replacement must not discard an unconsumed pose invalidation.
++	p_mask |= NWN_PARTICLE_POSE_DIRTY;
+ 	if (is_group_processing()) {
+ 		data.dirty.mt.set(p_mask);
+ 	} else {
+@@ -985,6 +996,9 @@ void Node3D::_replace_dirty_mask(uint32_t p_mask) const {
+ }
+ 
+ void Node3D::_set_dirty_bits(uint32_t p_bits) const {
++	if (p_bits & DIRTY_GLOBAL_TRANSFORM) {
++		p_bits |= NWN_PARTICLE_POSE_DIRTY;
++	}
+ 	if (is_group_processing()) {
+ 		data.dirty.mt.bit_or(p_bits);
+ 	} else {
+@@ -1430,6 +1444,30 @@ bool Node3D::_property_get_revert(const StringName &p_name, Variant &r_property)
+ }
+ 
+ void Node3D::_bind_methods() {
++	static_assert(((DIRTY_EULER_ROTATION_AND_SCALE | DIRTY_LOCAL_TRANSFORM | DIRTY_GLOBAL_TRANSFORM | DIRTY_GLOBAL_INTERPOLATED_TRANSFORM) & NWN_PARTICLE_POSE_DIRTY) == 0);
++	if constexpr (sizeof(void *) == 8 && sizeof(real_t) == sizeof(float) && sizeof(Transform3D) == 12 * sizeof(float)) {
++		ClassDB::bind_integer_constant(get_class_static(), StringName(), SNAME("NWN_PARTICLE_POSE_DIRTY_ABI"), 1);
++		// The caller validates Node3D identity and retains a destruction-aware binding.
++		const auto particle_pose = +[](GDExtensionObjectPtr p_object, uint32_t p_need_pose, float *r_transform, uint32_t p_words) -> int32_t {
++			if (p_object == nullptr || r_transform == nullptr || p_words != 12) {
++				return -2;
++			}
++			const Node3D *node = static_cast<const Node3D *>(static_cast<const Object *>(p_object));
++			// SceneTree joins threaded process groups before invoking ungrouped main-thread callbacks.
++			if (!Thread::is_main_thread() || Node::is_group_processing() || !node->is_inside_tree() || !node->is_accessible_from_caller_thread()) {
++				return -1;
++			}
++			if (!p_need_pose && !node->_test_dirty_bits(NWN_PARTICLE_POSE_DIRTY | DIRTY_GLOBAL_TRANSFORM)) {
++				return 1;
++			}
++			const Transform3D transform = node->get_global_transform();
++			std::memcpy(r_transform, &transform, 12 * sizeof(float));
++			node->_clear_dirty_bits(NWN_PARTICLE_POSE_DIRTY);
++			return 0;
++		};
++		GDExtension::register_interface_function("nwn_particle_pose_dirty_v1", reinterpret_cast<GDExtensionInterfaceFunctionPtr>(particle_pose));
++	}
++
+ 	ClassDB::bind_method(D_METHOD("set_transform", "local"), &Node3D::set_transform);
+ 	ClassDB::bind_method(D_METHOD("get_transform"), &Node3D::get_transform);
+ 	ClassDB::bind_method(D_METHOD("set_position", "position"), &Node3D::set_position);

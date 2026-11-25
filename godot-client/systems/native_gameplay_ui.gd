@@ -266,6 +266,10 @@ func startup_snapshot() -> Dictionary:
 	if is_instance_valid(desktop): result.merge({"party_visible":desktop.party.visible,"quickbar_visible":desktop.quickbar.visible,"party_layout_ready":desktop.party_frame.layout_ready,"quickbar_layout_ready":desktop.quickbar_frame.layout_ready})
 	if is_instance_valid(desktop) and desktop.radial.active: result.radial=desktop.radial_diagnostic()
 	return result
+func set_inventory_backdrop_opacity(opacity: float) -> void:
+	inventory.frame_skin.set_backdrop_opacity(opacity)
+	inventory_windows.alternate.frame_skin.set_backdrop_opacity(opacity)
+
 func set_world(epoch: int,area: int,controlled: int,objects: Array,raw_inventory: Dictionary={},header: Dictionary={}) -> void:
 	var began:=Timing.begin()
 	if generation!=epoch:

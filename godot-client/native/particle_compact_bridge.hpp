@@ -1,6 +1,18 @@
 // Cold configure/frame/diagnostic and actual external-service boundaries.
 // Compact simulation/vertices never import/export an individual field here.
 namespace compact_particle {
+void bind_preparation_reuse(){
+ Name name("OS");
+ auto object=global_singleton(name.data);
+ preparation_reuse=false;
+ if(!object)return;
+ EngineVar os;
+ destroy(os.data);
+ from[GDEXTENSION_VARIANT_TYPE_OBJECT](os.data,&object);
+ auto args=::method(os,"get_cmdline_user_args");
+ preparation_reuse=::method(args,"has",{EngineVar::text("--particle-sim-reuse=on")}).boolean();
+}
+
 #define COMPACT_FLOAT_FIELDS(X) X(birthRate) X(lifeExp) X(particleRot) X(blurLength) X(velocity) X(randomVelocity) X(frameStart) X(frameEnd) X(xSize) X(ySize) X(spread) X(mass) X(bounceCoefficient) X(sizeStart) X(sizeEnd) X(sizeStartY) X(sizeEndY) X(alphaStart) X(alphaEnd) X(fps) X(deadspace) X(blastRadius) X(blastLength) X(elevationThreshold) X(accumulator198) X(blastLatch1c8)
 #define COMPACT_INT_FIELDS(X) X(renderMode1a8) X(loop) X(xGrid) X(yGrid) X(ageMode1cc) X(initialized208) X(detonate108) X(enabled23c)
 #define COMPACT_V3_FIELDS(X) X(remaining164) X(position1e0) X(previous19c) X(reference10c) X(colorStart) X(colorEnd)
@@ -11,6 +23,7 @@ Instance instance_from(const Var& value){Instance out;if(value.nil())return out;
  if(has(value,particle_field::fade))out.fade=f(value,particle_field::fade);if(has(value,particle_field::height50))out.height50=f(value,particle_field::height50);if(has(value,particle_field::opacity70))out.opacity70=f(value,particle_field::opacity70);return out;}
 Source source_from(const Var& value){Source out;out.present=!value.nil();if(out.present){out.position=values<3>(get(value,particle_field::position));out.quaternion=values<4>(get(value,particle_field::quaternion));out.adjustedScale=f(value,particle_field::adjustedScale);out.opacity108=f(value,particle_field::opacity108);out.instance=instance_from(get(value,particle_field::instance));}return out;}
 void read_emitter(Emitter& out,const Var& value){
+ out.prepared_basis_valid=false;
 #define READ_FLOAT(name) if(has(value,particle_field::name))out.name=f(value,particle_field::name);
  COMPACT_FLOAT_FIELDS(READ_FLOAT)
 #undef READ_FLOAT
@@ -47,7 +60,7 @@ void apply_emitter_field(Emitter& out,const Var& value,ParticleFieldKey field){
 #undef APPLY_QUAT
  case particle_field::flags.index:out.flags=static_cast<uint32_t>(i(value,particle_field::flags));return;
  case particle_field::spawnType.index:out.spawnType=word32(value,particle_field::spawnType);return;
- case particle_field::basis140.index:out.basis140=values<9>(get(value,particle_field::basis140));return;
+ case particle_field::basis140.index:out.prepared_basis_valid=false;out.basis140=values<9>(get(value,particle_field::basis140));return;
  case particle_field::chunkName.index:out.chunk=nonempty_text(get(value,particle_field::chunkName));return;
  case particle_field::instance100.index:out.instance=instance_from(get(value,particle_field::instance100));return;
  case particle_field::source50.index:out.source=source_from(get(value,particle_field::source50));return;

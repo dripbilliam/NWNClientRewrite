@@ -133,9 +133,10 @@ var base_retry_requests: Dictionary={}
 # Default-off experiment: probe only the already-reserved current wave.
 var probe_base_templates:=OS.get_cmdline_user_args().has("--base-scenery-template-probe=ready")
 var base_template_probes: Dictionary={}
-# Optional persistent owner: retire consumed rows and refill freed reservations.
-var continuous_base_stream:=OS.get_cmdline_user_args().has("--base-scenery-stream=continuous")
+# Only the world's base-scenery stream retains rows between refills.
+var continuous_base_stream:=false
 var continuous_rows: Dictionary={}
+var discarded_base_rows: Array[int]=[]
 var group_bundles: Dictionary={}
 var maximum_continuous_rows:=64
 var stats: Dictionary={"planned":0,"rendered":0,"invisible":0,"deferred_actors":0,"deferred_items":0,"errors":[],"scope_errors":[],"object_failures":{},"warnings":[],"limitations":[],"model_jobs":0}
@@ -278,6 +279,9 @@ func retire_base_row(id: int) -> void:
 		groups[name]=groups[name].filter(func(row):return int(row.id)!=id)
 		if groups[name].is_empty():
 			groups.erase(name);templates.erase(name);group_bundles.erase(name);base_template_probes.erase(name)
+func discard_publication(id: int) -> void:
+	stats.stale_publications=int(stats.get("stale_publications",0))+1
+	if continuous_rows.has(id):discarded_base_rows.append(id)
 func prepared(id: int, result: Dictionary) -> void:
 	if closed: return
 	if base_retry_requests.has(id):prepared_base_retry(id,result);return
@@ -297,6 +301,12 @@ func prepared(id: int, result: Dictionary) -> void:
 	if not model_requests.has(id): return
 	var name: String=model_requests[id]; model_requests.erase(id)
 	if not str(result.error).is_empty(): model_failed(name,str(result.error)); return
+	if not result.get("cache_hit",false):
+		var timings: Dictionary=result.get("timings",{}).get("mesh_preparation",{})
+		if not timings.is_empty():
+			stats.mesh_preparation_ms=float(stats.get("mesh_preparation_ms",0.0))+float(timings.mesh_ms)
+			stats.meshes_prepared=int(stats.get("meshes_prepared",0))+int(timings.meshes)
+			stats.compiled_vertex_meshes=int(stats.get("compiled_vertex_meshes",0))+int(timings.get("compiled_vertex_meshes",0))
 	stats.warnings.append_array(prepared_warnings(name,result))
 	if continuous_base_stream:group_bundles[name]=result
 	# Model de-duplication must not turn into model-group publication order.
@@ -390,7 +400,7 @@ func _profile_process(_delta: float) -> void:
 		var placement: Dictionary=entry.placement; var door: bool=int(placement.object.objectType)==10
 		var placeable: bool=int(placement.object.objectType)==9 and Placeable.requires_animation(placement.object.get("replicated",{}))
 		if not publication_current(int(placement.id)):
-			_cancel_publication_row(entry);stats.stale_publications=int(stats.get("stale_publications",0))+1
+			_cancel_publication_row(entry);discard_publication(int(placement.id))
 			if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
 			elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 			continue
@@ -464,7 +474,9 @@ func _profile_process(_delta: float) -> void:
 			if is_instance_valid(admission_parent): instance.hide(); admission_parent.add_child(instance)
 			else: add_child(instance)
 			Timing.finish("object_stream_attach_ms",phase_began)
-			if closed or not publication_current(int(placement.id)):instance.retire()
+			if closed or not publication_current(int(placement.id)):
+				instance.retire()
+				discard_publication(int(placement.id))
 			else:instances[placement.id]=instance; stats.rendered+=1
 		published+=1
 		phase_began=Timing.begin()

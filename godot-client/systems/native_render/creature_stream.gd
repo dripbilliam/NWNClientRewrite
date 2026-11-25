@@ -191,20 +191,27 @@ func _plan_object(object: Dictionary) -> void:
 	else:
 		stats.planned_items+=1; pieces=item_descriptors(object.get("item",object.get("replicated",{}).get("item",{})),"",1.0,0,int(object.id))
 	if pieces.is_empty(): return
-	var valid:=true
+	var resolved_pieces: Array=[]
 	for piece in pieces:
 		var name:=str(piece.model)
 		if not catalog.has_resource(name,2002): name=str(piece.get("fallbackModel",""))
-		if name.is_empty() or not catalog.has_resource(name,2002): object_failed(int(object.id),"Original actor model and fallback are absent",str(piece.model)); valid=false; break
+		if name.is_empty() or not catalog.has_resource(name,2002):
+			var part_index:=int(piece.get("partIndex",-1))
+			if kind==5 and part_index>=0 and part_index<18:
+				# A missing modular mesh does not invalidate the body rig or its other parts.
+				stats.warnings.append({"id":object.id,"model":str(piece.model),"partIndex":part_index,"reason":"Original creature body part and fallback are absent"})
+				continue
+			object_failed(int(object.id),"Original actor model and fallback are absent",str(piece.model))
+			return
 		var options:={"plt_candidates":piece.get("pltCandidates",[]),"relevant_tracks":true}
 		if piece.has("paletteColors"): options.palette_colors=piece.paletteColors
 		var key:=JSON.stringify([name,options]); piece.key=key
 		piece.source_model=name; piece.source_options=options
-	if valid:
-		for piece in pieces:
-			if not model_specs.has(piece.key): model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}; waiting.append(piece.key)
-			piece.erase("source_model"); piece.erase("source_options")
-		placement.merge({"id":int(object.id),"kind":kind,"pieces":pieces,"maps":maps,"animation":int(object.get("replicated",{}).get("animation",0))}); plans.append(placement)
+		resolved_pieces.append(piece)
+	for piece in resolved_pieces:
+		if not model_specs.has(piece.key): model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}; waiting.append(piece.key)
+		piece.erase("source_model"); piece.erase("source_options")
+	placement.merge({"id":int(object.id),"kind":kind,"pieces":resolved_pieces,"maps":maps,"animation":int(object.get("replicated",{}).get("animation",0))}); plans.append(placement)
 func prepared(id: int,result: Dictionary) -> void:
 	if closed: return
 	if table_jobs.has(id):

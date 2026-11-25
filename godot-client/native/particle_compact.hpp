@@ -2,6 +2,8 @@
 // Included inside the native kernel's private namespace. No engine Variant,
 // string, map, reference count or separately allocated vector per sprite.
 namespace compact_particle {
+bool preparation_reuse=false;
+
 struct Particle {
  V3 position10{};float rotation1c=0,inheritedSpeed20=0;
  V3 inheritedDirection24{};Q4 quaternion34{1,0,0,0};
@@ -27,7 +29,8 @@ struct Emitter {
  float accumulator198=0,blastLatch1c8=0;V3 remaining164{},position1e0{},previous19c{},reference10c{};
  Q4 quaternion1d0{1,0,0,0},previousQuaternion178{1,0,0,0},referenceQuaternion118{1,0,0,0};
  std::array<float,9> basis140{1,0,0,0,1,0,0,0,1};V3 colorStart{},colorEnd{};
- Source source;Instance instance;bool chunk=false;
+ Q4 prepared_basis_orientation{};
+ Source source;Instance instance;bool chunk=false,prepared_basis_valid=false;
  CxTargetMotion target;
 };
 struct Pool {
@@ -107,12 +110,44 @@ void initialize(Particle& part,const Emitter& e,float delta,float factor,Service
 void randomize(Particle& part,const Emitter& e,Services& service){if(!(e.flags&32))return;const int64_t difference=cvtt(e.frameEnd-e.frameStart),plus=difference+1,count=plus>=0?plus:~difference;if(count)part.frame44=cvtt(static_cast<float>(remainder(service.random(),count))+e.frameStart);}
 void rotate(Particle& part,const Emitter& e,float delta){float angle=delta*e.particleRot+part.rotation1c;if(angle>6.2831854820251465f)angle=angle-6.2831854820251465f;else if(angle<-6.2831854820251465f)angle=angle+6.2831854820251465f;part.rotation1c=angle;}
 void blur(Particle& part,float blend){const float remain=static_cast<float>(1.0-static_cast<double>(blend));for(size_t j=0;j<3;++j)part.trail64[j]=blend*part.position10[j]+remain*part.trail64[j];}
+
+bool age_particle(Particle& part,const Emitter& emitter,float delta){
+ if(emitter.lifeExp>=0&&part.age>=emitter.lifeExp)return false;
+ const float age=delta+part.age;part.age=age;
+ if(age<0){part.age=0;part.field48=0;}
+ return true;
+}
+
 void check_life(Emitter& e,Pool& pool,float delta,Services& service){
  for(size_t n=pool.active.size();n>0;--n){auto& part=*pool.active[n-1];
   if(!(e.lifeExp>=0)||!(part.age>=e.lifeExp)){const float age=delta+part.age;part.age=age;if(age<0){part.age=0;part.field48=0;}}
   else{pool.retire(n-1);if(e.chunk)service.detached(&part);}
  }
 }
+
+enum class PreparationSchedule { Fountain, Explosion };
+
+void prepare_particles(Emitter& emitter,Pool& pool,float delta,Services& service,PreparationSchedule schedule){
+ const bool motion=emitter.renderMode1a8==6;
+ const float length=motion?emitter.blurLength:1;
+ // Retire separately when retirement can allocate, detach a chunk, or
+ // change state before a malformed blur operation throws.
+ const auto active_size=pool.active.size();
+ const bool retirement_fits=pool.free_capacity-static_cast<int64_t>(pool.free.size())>=static_cast<int64_t>(active_size)&&
+     pool.free.capacity()-pool.free.size()>=active_size;
+ const bool fuse_life=!emitter.chunk&&(!motion||length!=0)&&(!(emitter.lifeExp>=0)||retirement_fits);
+ if(!fuse_life)check_life(emitter,pool,delta,service);
+ const bool explosion=schedule==PreparationSchedule::Explosion;
+ if(motion&&length==0)throw std::runtime_error(explosion?"Original compact blur length is zero":"Original compact particle blur length is zero");
+ const float blend=motion?(explosion?(delta>length?length:delta):(delta<=length?delta:length))/length:0;
+ for(size_t n=pool.active.size();n>0;--n){
+  auto& part=*pool.active[n-1];
+  if(fuse_life&&!age_particle(part,emitter,delta)){pool.retire(n-1);continue;}
+  if(motion)blur(part,blend);
+  rotate(part,emitter,delta);
+ }
+}
+
 V3 carry(Particle& particle,const Emitter& emitter,const Q4& turn){
  const auto flags=emitter.flags;
  auto position=particle.position10;
@@ -137,13 +172,16 @@ void remember_reference(Emitter& emitter){
 }
 void standard(Emitter& e,Pool& pool,float delta,Services& service){
  if(pool.active.empty())return;const auto flags=e.flags;const bool bounce=(flags&16)!=0;
+ const bool clear_each_particle=bounce||(flags&4)!=0;bool cleared_hit=false;
  auto previous=e.previousQuaternion178;previous[0]=previous[0]*-1.0f;const auto turn=multiply(e.quaternion1d0,previous);
  for(auto pointer:pool.active){auto& part=*pointer;if(part.stopped70!=0)continue;const auto old=part.position10;const auto position=carry(part,e,turn);
   const float inherited=part.inheritedSpeed20;V3 moved{};
   for(size_t j=0;j<3;++j){const float travel=delta*part.velocity58[j],carried=(inherited*part.inheritedDirection24[j])*delta;moved[j]=j==0?(travel+position[j])+carried:carried+(travel+position[j]);}
   if(flags&4)moved=resident::add(moved,service.wind(position,delta));part.position10=moved;
   const float damped=static_cast<float>(1.0-static_cast<double>(delta))*part.inheritedSpeed20;part.inheritedSpeed20=damped;part.velocity58[2]=part.velocity58[2]-(e.mass*9.8100004196167f)*delta;if(damped<0)part.inheritedSpeed20=damped*-1.0f;
-  service.clear_hit();if(!bounce)continue;V3 normal{};
+  // With no wind or bounce, no scene service can observe the repeated clears.
+  if(clear_each_particle||!cleared_hit){service.clear_hit();cleared_hit=true;}
+  if(!bounce)continue;V3 normal{};
   if(!service.collide(&part,old,part.position10,normal))continue;
   float squared=0;if(e.bounceCoefficient==0)part.velocity58={};else{
    const auto before=part.velocity58;const float dot=(before[0]*normal[0]+before[1]*normal[1])+before[2]*normal[2];V3 reflected{};
@@ -161,9 +199,14 @@ Particle* spawn(Emitter& e,Pool& pool,float delta,float factor,Services& service
 }
 #include "cx_particle_target_motion.hpp"
 void fountain(Emitter& e,Pool& pool,float delta,Services& service){
- const float rate=e.birthRate;e.enabled23c=!(0>=rate);const float factor=e.source.present?e.source.adjustedScale:1;check_life(e,pool,delta,service);
- if(e.renderMode1a8==6){const float length=e.blurLength;if(length==0)throw std::runtime_error("Original compact particle blur length is zero");const float blend=(delta<=length?delta:length)/length;for(size_t n=pool.active.size();n>0;--n)blur(*pool.active[n-1],blend);}
- for(size_t n=pool.active.size();n>0;--n)rotate(*pool.active[n-1],e,delta);cx_motion::move(e,pool,delta,service);const auto rate_int=cvtt(rate);if(rate_int<=0)return;const float interval=1.0f/rate;
+ const float rate=e.birthRate;e.enabled23c=!(0>=rate);const float factor=e.source.present?e.source.adjustedScale:1;
+ if(preparation_reuse)prepare_particles(e,pool,delta,service,PreparationSchedule::Fountain);
+ else{
+  check_life(e,pool,delta,service);
+  if(e.renderMode1a8==6){const float length=e.blurLength;if(length==0)throw std::runtime_error("Original compact particle blur length is zero");const float blend=(delta<=length?delta:length)/length;for(size_t n=pool.active.size();n>0;--n)blur(*pool.active[n-1],blend);}
+  for(size_t n=pool.active.size();n>0;--n)rotate(*pool.active[n-1],e,delta);
+ }
+ cx_motion::move(e,pool,delta,service);const auto rate_int=cvtt(rate);if(rate_int<=0)return;const float interval=1.0f/rate;
  if(e.spawnType==0){e.accumulator198=delta+e.accumulator198;if(!(e.accumulator198>=interval))return;int64_t n=0;while(n<remainder(cvtt(rate*e.accumulator198),static_cast<int64_t>(rate_int)+1)){if(n>=32768)throw std::runtime_error("Compact particle birth limit");spawn(e,pool,delta,factor,service);++n;}e.accumulator198=0;return;}
  V3 displacement{},direction{};for(size_t j=0;j<3;++j)displacement[j]=(e.position1e0[j]-e.previous19c[j])+e.remaining164[j];const float length=std::sqrt((displacement[1]*displacement[1]+displacement[0]*displacement[0])+displacement[2]*displacement[2]),inverse=length>0?1.0f/length:0;for(size_t j=0;j<3;++j)direction[j]=displacement[j]*inverse;
  const auto count=e.enabled23c!=0?cvtt(length*rate):0;if(count>32768)throw std::runtime_error("Compact spatial particle birth limit");
@@ -171,8 +214,14 @@ void fountain(Emitter& e,Pool& pool,float delta,Services& service){
  const float emitted=static_cast<float>(count)*interval;for(size_t j=0;j<3;++j)e.remaining164[j]=e.enabled23c!=0?displacement[j]-direction[j]*emitted:0;
 }
 void explosion(Emitter& e,Pool& pool,float delta,Services& service){
- const auto count=cvtt(e.birthRate);const float factor=e.source.present?e.source.adjustedScale:1;check_life(e,pool,delta,service);const bool motion=e.renderMode1a8==6;const float length=motion?e.blurLength:1;if(motion&&length==0)throw std::runtime_error("Original compact blur length is zero");const float blend=motion?(delta>length?length:delta)/length:0;
- for(size_t n=pool.active.size();n>0;--n){auto& part=*pool.active[n-1];if(motion)blur(part,blend);rotate(part,e,delta);}cx_motion::move(e,pool,delta,service);
+ const auto count=cvtt(e.birthRate);const float factor=e.source.present?e.source.adjustedScale:1;
+ if(preparation_reuse)prepare_particles(e,pool,delta,service,PreparationSchedule::Explosion);
+ else{
+  check_life(e,pool,delta,service);
+  const bool motion=e.renderMode1a8==6;const float length=motion?e.blurLength:1;if(motion&&length==0)throw std::runtime_error("Original compact blur length is zero");const float blend=motion?(delta>length?length:delta)/length:0;
+  for(size_t n=pool.active.size();n>0;--n){auto& part=*pool.active[n-1];if(motion)blur(part,blend);rotate(part,e,delta);}
+ }
+ cx_motion::move(e,pool,delta,service);
  if(count!=0&&e.detonate108!=0&&1>e.blastLatch1c8){if(e.blastRadius!=0)service.point_wind(e.position1e0,e.blastRadius,e.blastLength);if(count>32768)throw std::runtime_error("Compact explosion birth limit");
   for(int64_t n=0;n<std::max(0,count);++n){const bool reuse=!pool.free.empty();Particle* part;if(reuse){part=pool.free.back();pool.free.pop_back();}else part=create(e,pool,delta,service);const float scale=reuse?1:factor;initialize(*part,e,delta,e.chunk?1:scale,service);service.initialized(part,scale);pool.append(part);randomize(*part,e,service);}
  }
@@ -189,7 +238,16 @@ void animate(Emitter& e,Pool& pool,float delta,const V3& position,const Q4& quat
  V3 shift{};if((e.flags&256)&&e.source.present&&e.initialized208!=0)shift=resident::subtract(e.source.position,e.reference10c);
  if(e.initialized208==0){e.position1e0=position;e.quaternion1d0=quaternion;if(e.source.present&&(e.flags&0x500)){e.reference10c=e.source.position;e.referenceQuaternion118=e.source.quaternion;}if(e.flags&1024){e.reference10c=e.position1e0;e.referenceQuaternion118=e.quaternion1d0;}e.initialized208=1;}
  e.previous19c=(e.flags&256)?resident::add(shift,e.position1e0):e.position1e0;e.previousQuaternion178=e.quaternion1d0;if(e.source.present){e.position1e0=position;e.quaternion1d0=quaternion;}
- const auto x=axis_x(e.quaternion1d0),y=axis_y(e.quaternion1d0),z=axis_z(e.quaternion1d0);e.basis140={x[0],x[1],x[2],y[0],y[1],y[2],z[0],z[1],z[2]};
+ const bool reuse_basis=preparation_reuse&&e.prepared_basis_valid&&
+     std::memcmp(e.prepared_basis_orientation.data(),e.quaternion1d0.data(),sizeof(float)*e.quaternion1d0.size())==0;
+ if(!reuse_basis){
+  const auto x=axis_x(e.quaternion1d0),y=axis_y(e.quaternion1d0),z=axis_z(e.quaternion1d0);
+  e.basis140={x[0],x[1],x[2],y[0],y[1],y[2],z[0],z[1],z[2]};
+  if(preparation_reuse){
+   e.prepared_basis_orientation=e.quaternion1d0;
+   e.prepared_basis_valid=std::all_of(e.quaternion1d0.begin(),e.quaternion1d0.end(),[](float value){return std::isfinite(value);});
+  }
+ }
  if(kind==0)fountain(e,pool,delta,service);else if(kind==1)explosion(e,pool,delta,service);else if(kind==2)single(e,pool,delta,service);else if(kind==3)cx_motion::lightning(e,pool,delta,service);else throw std::runtime_error("Unknown compact particle schedule");
 }
 } // namespace compact_particle

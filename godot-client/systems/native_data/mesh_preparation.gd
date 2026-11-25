@@ -14,25 +14,37 @@ static func colors(bytes: PackedByteArray,count: int) -> PackedColorArray:
 	return result
 static func configured_enabled() -> bool: return not OS.get_cmdline_user_args().has("--mesh-preparation=main")
 static func point(values: PackedFloat32Array,index: int) -> Vector3: return Vector3(values[index*3],values[index*3+2],-values[index*3+1])
-static func prepare(data: Dictionary) -> Dictionary:
+static func prepare(data: Dictionary, native_vertices: bool=false) -> Dictionary:
 	var vertices: PackedFloat32Array=data.vertices; var source_indices: PackedInt32Array=data.indices
 	if vertices.size()%3!=0 or source_indices.size()%3!=0: return {"error":"Invalid native mesh stream lengths"}
 	if vertices.is_empty() or source_indices.is_empty(): return {"error":"","empty":true}
 	var count:=vertices.size()/3; var positions:=PackedVector3Array(); var normals:=PackedVector3Array(); var uv:=PackedVector2Array()
 	var authored_colors: PackedByteArray=data.get("vertex_colors",PackedByteArray())
 	if not authored_colors.is_empty() and authored_colors.size()!=count*4: return {"error":"Native vertex color count does not match geometry"}
-	positions.resize(count); normals.resize(count); uv.resize(count)
 	var authored_normals: PackedFloat32Array=data.normals; var authored_uv: PackedFloat32Array=data.uv[0] if not data.uv.is_empty() else PackedFloat32Array()
 	if not authored_normals.is_empty() and authored_normals.size()!=vertices.size(): return {"error":"Native normal count does not match geometry"}
 	if not authored_uv.is_empty() and authored_uv.size()!=count*2: return {"error":"Native UV count does not match geometry"}
 	var source_bounds:=AABB(); var pick_bounds:=AABB()
-	for vertex in count:
-		positions[vertex]=point(vertices,vertex)
-		if not authored_normals.is_empty(): normals[vertex]=point(authored_normals,vertex)
-		if not authored_uv.is_empty(): uv[vertex]=Vector2(authored_uv[vertex*2],authored_uv[vertex*2+1])
-		var p:=Vector3(vertices[vertex*3],vertices[vertex*3+1],vertices[vertex*3+2])
-		source_bounds=source_bounds.expand(p) if vertex>0 else AABB(p,Vector3.ZERO)
-		pick_bounds=pick_bounds.expand(positions[vertex]) if vertex>0 else AABB(positions[vertex],Vector3.ZERO)
+	var upload: Dictionary={}
+	if native_vertices and not authored_normals.is_empty():
+		upload=ClassDB.class_call_static(&"NwnParticleKernel",&"mesh_vertex_upload",
+			vertices.to_byte_array(),authored_normals.to_byte_array())
+	if upload.is_empty():
+		positions.resize(count); normals.resize(count); uv.resize(count)
+		for vertex in count:
+			positions[vertex]=point(vertices,vertex)
+			if not authored_normals.is_empty(): normals[vertex]=point(authored_normals,vertex)
+			if not authored_uv.is_empty(): uv[vertex]=Vector2(authored_uv[vertex*2],authored_uv[vertex*2+1])
+			var p:=Vector3(vertices[vertex*3],vertices[vertex*3+1],vertices[vertex*3+2])
+			source_bounds=source_bounds.expand(p) if vertex>0 else AABB(p,Vector3.ZERO)
+			pick_bounds=pick_bounds.expand(positions[vertex]) if vertex>0 else AABB(positions[vertex],Vector3.ZERO)
+	else:
+		positions=upload.positions
+		normals=upload.normals
+		source_bounds=upload.source_bounds
+		pick_bounds=upload.pick_bounds
+		if authored_uv.is_empty(): uv.resize(count)
+		else: uv=authored_uv.to_byte_array().to_vector2_array()
 	var indices:=source_indices.duplicate()
 	for face in range(0,indices.size(),3):
 		var a:=int(source_indices[face]); var b:=int(source_indices[face+1]); var c:=int(source_indices[face+2])
@@ -54,18 +66,22 @@ static func prepare(data: Dictionary) -> Dictionary:
 				physical.append([vertices[index],vertices[index+1],vertices[index+2]])
 			var p:=Polygon.plane(physical); planes.append_array(PackedFloat32Array([p.normal[0],p.normal[1],p.normal[2],p.constant]))
 	source_bounds=source_bounds.grow(maxf(1.0,maxf(source_bounds.position.abs().length(),source_bounds.end.abs().length()))*0.000003814697265625)
-	return {"error":"","revision":REVISION,"positions":positions,"normals":normals,"uv":uv,"colors":colors(authored_colors,count),"indices":indices,"pick_bounds":pick_bounds,"source_bounds":source_bounds,"planes":planes}
-static func model(value: Dictionary,prepare_skins: bool=false) -> Dictionary:
+	var result:={"error":"","revision":REVISION,"positions":positions,"normals":normals,"uv":uv,"colors":colors(authored_colors,count),"indices":indices,"pick_bounds":pick_bounds,"source_bounds":source_bounds,"planes":planes}
+	if not upload.is_empty(): result.compiled_vertices=true
+	return result
+static func model(value: Dictionary,prepare_skins: bool=false,native_vertices: bool=false) -> Dictionary:
 	var began:=Time.get_ticks_usec(); var meshes:=0; var vertices:=0; var faces:=0
 	var skins:=0; var skin_vertices:=0; var skin_ms:=0.0; var skin_fallbacks: Array=[]
+	var compiled_meshes:=0
 	for node in value.nodes:
 		if node.mesh.is_empty(): continue
-		var prepared:=prepare(node.mesh)
+		var prepared:=prepare(node.mesh,native_vertices)
 		if not str(prepared.error).is_empty(): return {"error":prepared.error,"mesh_ms":(Time.get_ticks_usec()-began)/1000.0}
 		if prepared.get("empty",false): continue
+		if prepared.erase("compiled_vertices"): compiled_meshes+=1
 		node.mesh.native_upload=prepared; meshes+=1; vertices+=prepared.positions.size(); faces+=prepared.indices.size()/3
 		if prepare_skins and node.has("skin") and node.mesh.get("render",false):
 			var skin_began:=Time.get_ticks_usec(); var cooked:=Skins.prepare(node); skin_ms+=(Time.get_ticks_usec()-skin_began)/1000.0
 			if str(cooked.error).is_empty(): node.skin.native_upload=cooked; skins+=1; skin_vertices+=cooked.positions.size()
 			else: skin_fallbacks.append(str(cooked.error)) # Preserve the original runtime validation/failure scope.
-	return {"error":"","mesh_ms":(Time.get_ticks_usec()-began)/1000.0,"meshes":meshes,"vertices":vertices,"faces":faces,"skins":skins,"skin_vertices":skin_vertices,"skin_ms":skin_ms,"skin_fallbacks":skin_fallbacks,"thread":OS.get_thread_caller_id()}
+	return {"error":"","mesh_ms":(Time.get_ticks_usec()-began)/1000.0,"meshes":meshes,"compiled_vertex_meshes":compiled_meshes,"vertices":vertices,"faces":faces,"skins":skins,"skin_vertices":skin_vertices,"skin_ms":skin_ms,"skin_fallbacks":skin_fallbacks,"thread":OS.get_thread_caller_id()}

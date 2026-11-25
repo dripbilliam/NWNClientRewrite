@@ -8,6 +8,7 @@ const Surface=preload("res://systems/native_data/tile_surface.gd")
 const Objects=preload("res://systems/native_render/object_stream.gd")
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
 const Spatial=preload("res://systems/native_render/drive_spatial_index.gd")
+const StaticGroupGrid=preload("res://systems/native_render/drive_static_group_grid.gd")
 const DriveProfile=preload("res://systems/native_render/frame_profile.gd")
 const PreviewArithmetic=preload("res://systems/native_render/drive_preview_arithmetic.gd")
 const HeightIndex=preload("res://systems/native_render/drive_height_index.gd")
@@ -37,6 +38,9 @@ var model_bounds: Dictionary={}
 var model_versions: Dictionary={}
 var static_groups: Dictionary={}
 var dirty_groups: Dictionary={}
+var static_group_cell_size:=0
+var static_group_grid: StaticGroupGrid
+var unresolved_static_groups: Dictionary={}
 var source_batch:=false
 var wanted_models: Dictionary={}
 var model_queue: Array=[]
@@ -179,7 +183,7 @@ func received_full_step() -> bool:
 		"bounds":
 			if index<state.keys.size():
 				var key: String=state.keys[index];state.index=index+1
-				if static_groups.has(key):static_groups[key].bounds=static_groups[key].index.root_bounds()
+				refresh_static_group_bounds(key)
 				return false
 			dirty_groups.clear();next_order=int(state.order);sources_synchronized=true;_received_full={};return true
 	return false
@@ -232,6 +236,7 @@ func ensure_spatial_scope()->bool:
 	invalidate_preview_geometry()
 	_worker_surface_cache={}
 	source_rows.clear();source_errors.clear();creature_ids.clear();model_users.clear();objects.clear();wanted_models.clear();model_queue.clear();pending_models.clear();static_groups.clear();dirty_groups.clear();source_batch=false
+	clear_static_group_grid()
 	next_order=0;sources_synchronized=false
 	return bool(spatial_ticket.get("ready",false))
 static func received_lifetime(value: Variant)->int:
@@ -369,6 +374,7 @@ func publish_model(key: String,value: Dictionary)->void:
 	models[key]=value;model_bounds.erase(key);pending_models.erase(key)
 	model_versions[key]=int(model_versions.get(key,0))+1
 	cache_model_bounds(key)
+	if static_group_grid!=null and static_groups.has(key):publish_static_group_bounds(key,static_groups[key])
 	# Per-model data only. Source centers stay indexed across resource arrival;
 	# known footprint inflation changes immediately without N user transforms.
 func cache_model_bounds(key: String)->void:
@@ -426,7 +432,7 @@ func publish_binding(binding: Dictionary)->void:
 func static_group(key: String)->Dictionary:
 	if static_groups.has(key):return static_groups[key]
 	var index:=Spatial.new()
-	var group:={"index":index,"ticket":index.begin(spatial_ticket.scope),"bounds":{}}
+	var group:={"index":index,"ticket":index.begin(spatial_ticket.scope),"bounds":{},"order":static_groups.size()}
 	if source_batch:index.begin_batch(group.ticket)
 	static_groups[key]=group;return group
 func leave_static_group(binding: Dictionary,retired: bool)->void:
@@ -452,8 +458,68 @@ func end_source_batch()->void:
 func flush_group_bounds()->void:
 	if source_batch:return
 	for key in dirty_groups:
-		if static_groups.has(key):static_groups[key].bounds=static_groups[key].index.root_bounds()
+		refresh_static_group_bounds(key)
 	dirty_groups.clear()
+func set_static_group_cell_size(value: int) -> void:
+	if value not in [0,5,10,20,40] or value==static_group_cell_size:return
+	static_group_cell_size=value
+	invalidate_preview_geometry()
+	unresolved_static_groups.clear()
+	if value==0:
+		static_group_grid=null
+		return
+	if static_group_grid==null:static_group_grid=StaticGroupGrid.new()
+	static_group_grid.configure(value)
+	for key in static_groups:
+		publish_static_group_bounds(key,static_groups[key])
+func clear_static_group_grid() -> void:
+	if static_group_grid!=null:static_group_grid.clear()
+	unresolved_static_groups.clear()
+func refresh_static_group_bounds(key: String) -> void:
+	if not static_groups.has(key):return
+	var group: Dictionary=static_groups[key]
+	var bounds: Dictionary=group.index.root_bounds()
+	var previous: Dictionary=group.bounds
+	group.bounds=bounds
+	if static_group_grid!=null and bounds!=previous:publish_static_group_bounds(key,group)
+func publish_static_group_bounds(key: String,group: Dictionary) -> void:
+	unresolved_static_groups.erase(key)
+	var bounds: Dictionary=group.bounds
+	if bounds.is_empty():
+		static_group_grid.erase(key)
+		return
+	var model: Dictionary=models.get(key,{})
+	var pending:=model.is_empty() or model.has("error")
+	var footprint:=12.0 if pending else 0.0
+	if not pending:
+		for state in model_bounds.get(key,EMPTY_MODEL_BOUNDS):
+			if state.get("pending",false):
+				# An unresolved bounded group can fail even a distant query.
+				# Keep the ordered scan and its partial result until it resolves.
+				unresolved_static_groups[key]=true
+				static_group_grid.erase(key)
+				return
+			footprint=maxf(footprint,float(state.get("radius",0)))
+	var min_x:=float(bounds.min_x)
+	var min_y:=float(bounds.min_y)
+	var max_x:=float(bounds.max_x)
+	var max_y:=float(bounds.max_y)
+	var magnitude:=maxf(maxf(absf(min_x),absf(max_x)),maxf(absf(min_y),absf(max_y)))
+	magnitude=maxf(magnitude,maxf(1.0,footprint))
+	# Keep the query conservative when distributing the original sum
+	# between the group bounds and sweep. Exact checks still run below.
+	var padding:=footprint+magnitude*0.000000000002
+	if not pending:padding+=magnitude*0.000003814697265625
+	static_group_grid.upsert(key,int(group.order),min_x-padding,min_y-padding,max_x+padding,max_y+padding)
+func static_group_keys(min_x: float,min_y: float,max_x: float,max_y: float,radius: float) -> Variant:
+	if source_batch or not _received_full.is_empty() or not unresolved_static_groups.is_empty() or radius<0.0 or not is_finite(radius):
+		return static_groups
+	var magnitude:=maxf(maxf(absf(min_x),absf(max_x)),maxf(absf(min_y),absf(max_y)))
+	var padding:=radius+maxf(maxf(magnitude,radius),1.0)*0.000000000002
+	var selection:=static_group_grid.query(min_x-padding,min_y-padding,max_x+padding,max_y+padding)
+	if not selection.ready:return static_groups
+	DriveProfile.count("count_drive_group_grid_tests",int(selection.tested_groups))
+	return selection.keys
 func retire_index()->void:
 	cancel_received_full()
 	invalidate_preview_geometry()
@@ -461,6 +527,7 @@ func retire_index()->void:
 	if not spatial_ticket.is_empty():spatial.clear(spatial_ticket)
 	spatial_ticket={};sources_synchronized=false
 	source_rows.clear();source_errors.clear();creature_ids.clear();model_users.clear();wanted_models.clear();model_queue.clear();static_groups.clear();dirty_groups.clear();source_batch=false;set_process(false)
+	clear_static_group_grid()
 func row(table: String,index: int) -> Dictionary:
 	var rows: Array=tables.get(table,{}).get("orderedRows",[])
 	return rows[index] if index>=0 and index<rows.size() else {}
@@ -738,11 +805,12 @@ func indexed_clear(ticket: Dictionary,id: int,witness: Array,from: Vector3,to: V
 	if not geometry.ready:return false
 	return clear(from,to,radius,height,geometry.obstacles,geometry.creatures,geometry.pending)
 func static_candidates(from: Vector3,to: Vector3,radius: float,exclude: int)->Dictionary:
-	DriveProfile.count("count_drive_model_group_inputs",static_groups.size())
 	var result:={"ready":true,"rows":[]}
 	var min_x:=minf(from.x,to.x);var max_x:=maxf(from.x,to.x)
 	var min_y:=minf(from.y,to.y);var max_y:=maxf(from.y,to.y)
-	for model_key in static_groups:
+	var keys: Variant=static_groups if static_group_grid==null else static_group_keys(min_x,min_y,max_x,max_y,radius)
+	DriveProfile.count("count_drive_model_group_inputs",keys.size())
+	for model_key in keys:
 		var group: Dictionary=static_groups[model_key]
 		var bounds: Dictionary=group.bounds
 		if bounds.is_empty():continue
@@ -902,6 +970,7 @@ func snapshot() -> Dictionary:
 	var state:=stats.duplicate(true); state.pending=requests.size(); state.ready=ready() if not closed else false
 	state.spatial=spatial.snapshot();state.source_errors=source_errors.duplicate();state.sources=source_rows.size();state.model_users=model_users.size();state.queued_models=model_queue.size()
 	state.static_groups=static_groups.size();state.static_entries=0;state.static_last_bulk_ms=0.0
+	state.static_group_cell_size=static_group_cell_size
 	state.preview_geometry=preview_stats.duplicate()
 	if _worker_surface_cache_enabled:
 		state.preview_worker_surface_cache=_worker_surface_cache_stats.duplicate()
@@ -914,6 +983,7 @@ func snapshot() -> Dictionary:
 	return state
 func detach_prepared_data() -> Dictionary:
 	var payload:={"tables":tables.duplicate(),"models":models.duplicate(),"tiles":tiles.duplicate(),"objects":objects.duplicate(),"model_bounds":model_bounds.duplicate()}
+	static_group_grid=null;unresolved_static_groups.clear()
 	tables={}; models={}; tiles={}; objects={};model_bounds={};_worker_surface_cache={}; return payload
 func close() -> void:
 	if closed: return

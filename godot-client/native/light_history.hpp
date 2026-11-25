@@ -6,14 +6,71 @@ namespace light_history {
 bool registered=false;
 double number(const Var& input,const char* name,double fallback){if(!has(input,name))return fallback;const auto value=get(input,name);return value.type()==GDEXTENSION_VARIANT_TYPE_BOOL?(value.boolean()?1:0):value.number();}
 int64_t id_value(const Var& value){const auto n=value.number();if(!std::isfinite(n)||std::trunc(n)!=n||std::abs(n)>9007199254740991.0)throw std::runtime_error("Native light identity is invalid");return static_cast<int64_t>(n);}
+using ViewBounds = std::array<float, 4>;
+
+struct FadeView {
+ std::array<std::array<float, 4>, 6> planes{};
+ size_t count = 0;
+ int64_t tests = 0;
+ uint64_t revision = 1;
+
+ void update(const Var& input) {
+  Var source = get(input, "fade_view_planes");
+  if (source.type() != GDEXTENSION_VARIANT_TYPE_ARRAY)
+   throw std::runtime_error("Native fade view requires a Plane array");
+  const auto length = size(source);
+  if (length != 0 && length != static_cast<int64_t>(planes.size()))
+   throw std::runtime_error("Native fade view requires zero or six planes");
+  count = static_cast<size_t>(length);
+  for (size_t index = 0; index < count; ++index) {
+   Var plane = at(source, static_cast<int64_t>(index));
+   if (plane.type() != GDEXTENSION_VARIANT_TYPE_PLANE)
+    throw std::runtime_error("Native fade view requires Plane elements");
+   to[GDEXTENSION_VARIANT_TYPE_PLANE](planes[index].data(), plane.data);
+  }
+  ++revision;
+ }
+
+ bool contains(const ViewBounds& bounds) {
+  ++tests;
+  if (count == 0) return true;
+  static const auto distance_to = [] {
+   Name name("distance_to");
+   return builtin_method(GDEXTENSION_VARIANT_TYPE_PLANE, name.data, 1047977935);
+  }();
+  if (!distance_to) throw std::runtime_error("Native Plane.distance_to binding unavailable");
+  const V3 center{bounds[0], bounds[1], bounds[2]};
+  const GDExtensionConstTypePtr args[] = {center.data()};
+  for (size_t index = 0; index < count; ++index) {
+   double distance = 0;
+   distance_to(planes[index].data(), args, &distance, 1);
+   if (distance > bounds[3]) return false;
+  }
+  return true;
+ }
+};
+
 struct Light {
  int64_t id=0,owner=0;V3 color{},position{};float radius=0,multiplier=1,fade[2]{},score=0,distance=0;
  int32_t priority=4,override_value=0,dynamic=1;bool affect=true,fading=true,in_view=true;
+ ViewBounds view_bounds{};
+ bool has_view_bounds = false;
+ uint64_t tested_view = 0;
  void update(const Var& row){
   if(has(row,"color"))color=values<3>(get(row,"color"));if(has(row,"position"))position=values<3>(get(row,"position"));
   radius=static_cast<float>(number(row,"radius",radius));multiplier=static_cast<float>(number(row,"multiplier",multiplier));
   owner=static_cast<int64_t>(number(row,"owner",static_cast<double>(owner)));priority=static_cast<int32_t>(number(row,"priority",priority));override_value=static_cast<int32_t>(number(row,"override",override_value));dynamic=static_cast<int32_t>(number(row,"dynamic",dynamic));
-  affect=number(row,"affect",affect?1:0)!=0;fading=number(row,"fading",fading?1:0)!=0;in_view=number(row,"in_view",1)!=0;
+  affect=number(row,"affect",affect?1:0)!=0;fading=number(row,"fading",fading?1:0)!=0;
+  if (has(row, "fade_view_bounds")) {
+   Var bounds = get(row, "fade_view_bounds");
+   if (bounds.type() != GDEXTENSION_VARIANT_TYPE_VECTOR4)
+    throw std::runtime_error("Native fade view bounds require a Vector4");
+   ViewBounds next_bounds{};
+   to[GDEXTENSION_VARIANT_TYPE_VECTOR4](next_bounds.data(), bounds.data);
+   if (!has_view_bounds || next_bounds != view_bounds) tested_view = 0;
+   view_bounds = next_bounds;
+   has_view_bounds = true;
+  } else in_view=number(row,"in_view",1)!=0;
   for(auto v:color)if(!std::isfinite(v))throw std::runtime_error("Nonfinite native light color");for(auto v:position)if(!std::isfinite(v))throw std::runtime_error("Nonfinite native light position");if(!std::isfinite(radius)||!std::isfinite(multiplier))throw std::runtime_error("Nonfinite native light range");
  }
  float adjusted_radius(bool enhanced,float cutoff)const{float range=radius;if(range<1000){range=range*multiplier;if(enhanced){const auto peak=std::max(color[2],std::max(color[1],color[0]));if(peak>1)range=range*peak;range=cutoff*range;}}return range;}
@@ -38,6 +95,8 @@ struct Light {
 struct Owner {
  std::unordered_map<int64_t,Light> lights;std::array<Light,2> area;bool area_present[2]{},closed=false,enhanced=true;float cutoff=2;
  std::vector<int64_t> active[2],order,registration,collected;int64_t steps=0;Var calls=array_empty();
+ FadeView fade_view;
+ bool query_fade_view = false;
  Light& lamp(int64_t id){auto it=lights.find(id);if(it==lights.end())throw std::runtime_error("Native light candidate has no physical lamp");return it->second;}
  void updates(const Var& input,bool initial){
   if(has(input,"enhanced"))enhanced=get(input,"enhanced").boolean();if(has(input,"cutoff"))cutoff=f(input,"cutoff");
@@ -58,7 +117,16 @@ struct Owner {
   if(only){slots=0;for(auto id:order){if(lamp(id).owner!=only)break;++slots;}slots=std::min(slots,static_cast<int32_t>(maximum));}
   for(int64_t n=static_cast<int64_t>(old.size())-1;n>=0;--n){auto& light=lamp(old[static_cast<size_t>(n)]);const auto index=rank_index(light.id);auto& fade=light.fade[channel];bool remove=index<0;
    if(!remove&&index<slots){if(fade<1)fade=std::min(light.speed(enhanced,cutoff)*dt+fade,1.0f);}
-   else if(!remove){if(!light.in_view)remove=true;else{fade=fade-light.speed(enhanced,cutoff)*dt;remove=fade<0;}}
+   else if(!remove){
+    // Only a previously admitted lamp outside the selected slots uses
+    // frustum membership. Ranking and fresh admission use the sphere.
+    if (query_fade_view && light.has_view_bounds && light.tested_view != fade_view.revision) {
+     light.in_view = fade_view.contains(light.view_bounds);
+     light.tested_view = fade_view.revision;
+    }
+    if (!light.in_view) remove = true;
+    else { fade = fade - light.speed(enhanced,cutoff)*dt; remove = fade < 0; }
+   }
    if(remove){fade=0;old.erase(old.begin()+n);}
   }
   int new_nonfading=0;for(int32_t n=0;n<slots&&n<static_cast<int32_t>(order.size());++n){auto& light=lamp(order[static_cast<size_t>(n)]);if(!light.fading&&!contains(old,light.id)&&(!only||light.owner==only))++new_nonfading;}
@@ -77,8 +145,25 @@ struct Owner {
   if(full){set(out,"order",ids(order));set(out,"collected",ids(collected));auto rows=array_empty();std::vector<int64_t> sorted;for(const auto& [id,light]:lights)sorted.push_back(id);std::sort(sorted.begin(),sorted.end());for(auto id:sorted){const auto& light=lights.at(id);auto row=Var::dictionary();set(row,"id",Var::integer(id));set(row,"fade0",Var::number(light.fade[0]));set(row,"fade1",Var::number(light.fade[1]));set(row,"score",Var::number(light.score));set(row,"distance",Var::number(light.distance));method(rows,"append",{row});}set(out,"lights",rows);}return out;
  }
  Var operate(int64_t operation,const Var& input){
-  if(operation==0){if(closed)throw std::runtime_error("Native light history cannot reopen");lights.clear();active[0].clear();active[1].clear();order.clear();registration.clear();collected.clear();area={};area_present[0]=area_present[1]=false;steps=0;calls=array_empty();updates(input,true);for(int n=0;n<2;++n){const auto name=n==0?"active0":"active1";if(has(input,name)){auto list=get(input,name);for(int64_t j=0;j<size(list);++j){const auto id=id_value(at(list,j));lamp(id);active[n].push_back(id);}}}return result(true);}
-  if(operation==1){step(input);return result(number(input,"full",0)!=0);}if(operation==2)return result(true);
+  if(operation==0){if(closed)throw std::runtime_error("Native light history cannot reopen");lights.clear();active[0].clear();active[1].clear();order.clear();registration.clear();collected.clear();area={};area_present[0]=area_present[1]=false;steps=0;calls=array_empty();updates(input,true);for(int n=0;n<2;++n){const auto name=n==0?"active0":"active1";if(has(input,name)){auto list=get(input,name);for(int64_t j=0;j<size(list);++j){const auto id=id_value(at(list,j));lamp(id);active[n].push_back(id);}}}
+   query_fade_view = number(input, "request_fade_view_support", 0) != 0;
+   fade_view = {};
+   auto out = result(true);
+   if (has(input, "request_fade_view_support")) set(out, "fade_view_supported", Var::boolean(true));
+   return out;
+  }
+  if (operation == 1) {
+   if (has(input, "fade_view_planes")) {
+    fade_view.update(input);
+    query_fade_view = true;
+   }
+   fade_view.tests = 0;
+   step(input);
+   Var out = result(number(input, "full", 0) != 0);
+   if (query_fade_view) set(out, "fade_view_tests", Var::integer(fade_view.tests));
+   return out;
+  }
+  if(operation==2)return result(true);
   if(operation==3){auto rows=get(input,"ids");for(int64_t n=0;n<size(rows);++n){const auto id=id_value(at(rows,n));for(auto* list:{&active[0],&active[1],&order,&registration,&collected})list->erase(std::remove(list->begin(),list->end(),id),list->end());lights.erase(id);}return result(false);}
   if(operation==8){lights.clear();active[0].clear();active[1].clear();order.clear();registration.clear();collected.clear();calls=array_empty();closed=true;return result(false);}throw std::runtime_error("Unknown native light history operation");
  }

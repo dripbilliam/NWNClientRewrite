@@ -32,6 +32,7 @@ Ordinary gameplay uses the standard runtime, separate rendering, and the CX part
 | `--native-light-history` | `1` | `0`, `1` | `tools/native-render-configuration.cjs` |
 | `--native-surface-output` | `true` | `false`, `true` | `tools/native-render-configuration.cjs` |
 | `--particle-presentation` | `shared` | `individual`, `shared`, `cx` (experimental, requires native surface output) | `tools/native-render-configuration.cjs` |
+| `--particle-sim-reuse` | `off` | `off`, `on` (compiled kernel, current project; PowerShell `-ParticleSimReuse`) | `native/particle_compact.hpp` |
 | `--particle-soft-depth` | `on` with shared native output | `on`, `off` | `systems/native_render/particle_stream_effect.gd` |
 | `--particle-lighting` | `pooled` | `scene`, `pooled` | `tools/native-render-configuration.cjs` |
 | `--native-overhead-clocks` | `false` | `false`, `true` | `systems/native_client_clock_runtime.gd` |

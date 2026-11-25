@@ -44,6 +44,8 @@ var member_order_serial:=0
 var dirty_light_inputs: Dictionary={}
 var light_bounds: Dictionary={}
 var mobile_light_inputs: Dictionary={}
+var native_fade_view:=false
+var prefer_native_fade_view:=false
 var _input_registry
 func _init() -> void:
 	configure_input_registry(OS.get_cmdline_user_args())
@@ -53,12 +55,14 @@ func configure_input_registry(arguments: PackedStringArray) -> bool:
 	if _input_registry!=null:_input_registry.close()
 	_input_registry=InputRegistry.new()
 	var accepted: bool=_input_registry.configure(arguments)
+	prefer_native_fade_view=_input_registry.effective=="script" and not arguments.has("--light-fade-view=script")
 	if not accepted:history_error=_input_registry.failure
 	else:history_error=""
 	return accepted
 func input_registry_snapshot() -> Dictionary:
 	var result: Dictionary=_input_registry.snapshot()
 	result.history_enabled=history!=null
+	result.native_fade_view=native_fade_view
 	result.focus_counts={"registered":members.size(),"input_rows":history_input_rows,"reused":history_input_reused,"view_tests":history_view_tests}
 	return result
 func _input_registry_failure(reason: String) -> void:
@@ -93,11 +97,14 @@ func enable_history(maximum: int=DEFAULT_MAXIMUM) -> void:
 		if reset.has("error"):_input_registry_failure(str(reset.error));return
 	history=ClassDB.instantiate("NwnLightHistory"); history_maximum=clampi(maximum,0,128)
 	history_rows.clear()
+	history_planes.clear()
 	light_bounds.clear(); mobile_light_inputs.clear()
 	if _input_registry.effective=="script":
 		for id in members: dirty_light_inputs[id]=true
-	history.dispatch(0,{"enhanced":true})
+	var initial: Dictionary=history.dispatch(0,{"enhanced":true,"request_fade_view_support":prefer_native_fade_view})
+	native_fade_view=prefer_native_fade_view and bool(initial.get("fade_view_supported",false))
 func disable_history() -> void:
+	native_fade_view=false
 	blind_light_owner=null
 	if history!=null: history.dispatch(8,{}); history=null
 	for entry in members.values():
@@ -135,9 +142,10 @@ func _refresh_light_input(id: int,planes: Array,changed_rows: Dictionary,removed
 		"color":props.get("color",[0,0,0]),"radius":props.get("radius",0),
 		"multiplier":props.get("multiplier",1),"priority":props.get("lightpriority",4),
 		"dynamic":props.get("isdynamic",1),"affect":props.get("affectdynamic",1),
-		"fading":props.get("fadinglight",1),"override":int(light.get_meta("native_light_priority",0)),
-		"in_view":_light_in_view(bounds,planes)
+		"fading":props.get("fadinglight",1),"override":int(light.get_meta("native_light_priority",0))
 	}
+	if native_fade_view: row.fade_view_bounds=bounds
+	else: row.in_view=_light_in_view(bounds,planes)
 	light_bounds[id]=bounds
 	var source: Node3D=entry.source.get_ref() if entry.source!=null else null
 	if is_instance_valid(source) and source.has_meta("native_tile_index"): mobile_light_inputs.erase(id)
@@ -157,7 +165,8 @@ func history_frame(delta: float) -> void:
 	var view_began:=Timing.begin()
 	var camera: Camera3D=history_camera.get_ref() if history_camera!=null else null
 	var planes: Array=camera.get_frustum() if is_instance_valid(camera) else []
-	var view_changed: bool=planes!=history_planes; history_planes=planes
+	var view_changed:=planes!=history_planes
+	history_planes=planes
 	Timing.finish("light_history_view_ms",view_began)
 	if _input_registry.effective=="builtin":
 		var poll_began:=Timing.begin()
@@ -184,7 +193,7 @@ func history_frame(delta: float) -> void:
 			if not is_instance_valid(light) or light.global_position!=Vector3(bounds.x,bounds.y,bounds.z):
 				dirty_light_inputs[id]=true
 		for id in dirty_light_inputs: _refresh_light_input(id,planes,changed_rows,removed)
-		if view_changed:
+		if view_changed and not native_fade_view:
 			# A moving camera changes the plane test, not the authored lamp data.
 			for id in light_bounds:
 				if dirty_light_inputs.has(id): continue
@@ -205,11 +214,15 @@ func history_frame(delta: float) -> void:
 	Timing.finish("light_history_registry",began); var solve_began:=Timing.begin()
 	if not removed.is_empty(): history.dispatch(3,{"ids":removed})
 	var input:={"lights":rows,"collect_radius":maxf(45.0,history_radius),"focus":native_point(focus),"delta":delta,"maximum":history_maximum}
+	if native_fade_view and view_changed: input.fade_view_planes=planes
 	var only_owner:=only_light_owner()
 	input.only_owner=only_owner
 	for name in ["ambient","diffuse"]:
 		if area.has(name): input[name]={"color":area[name].color,"radius":1000000,"owner":0}
 	history_result=history.dispatch(1,input)
+	if native_fade_view and not history_result.has("error"):
+		if history_result.has("fade_view_tests"): history_view_tests+=int(history_result.fade_view_tests)
+		else: history_result={"error":"Native fade visibility requires the matching light history kernel"}
 	Timing.finish("light_history_solver",solve_began); var publish_began:=Timing.begin()
 	if history_result.has("error"):
 		history_error=str(history_result.error); push_error(history_error); disable_history(); return
@@ -269,7 +282,8 @@ func register(light: Node3D) -> void:
 	var owner_id:=source.get_instance_id() if source!=null and source!=world else 0
 	if members.has(id): _disconnect_light_parent(members[id])
 	var parent_3d:=parent as Node3D
-	var changed:=mark_light_input_changed.bind(id)
+	# Each sibling needs its own callback when several lamps share the parent.
+	var changed:=func(): mark_light_input_changed(id)
 	members[id]={"light":weakref(light),"source":weakref(source) if owner_id!=0 else null,"owner_id":owner_id,
 		"publication_order":order,"parent":weakref(parent_3d) if parent_3d!=null else null,"changed":changed}
 	light.focus_owner=weakref(self)

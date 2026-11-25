@@ -283,6 +283,13 @@ export class NetworkWorld {
      if(operation==='D'){
       const old=index>=0?view.entries.splice(index,1)[0]:null;
       if(old){const item=object(old.id,GAME_OBJECT_TYPE.item);if(item.inventoryLocation?.channel===channel)item.inventoryLocation=null;}
+      else if(channel==='R'){
+       // A page switch clears the GUI rows, but an explicit removal can
+       // still revoke a previously disclosed backpack item.
+       const cached=staged.get(record.id)??this.registry.get(record.id);
+       if(cached?.objectType===GAME_OBJECT_TYPE.item&&cached.inventoryLocation?.channel===channel&&cached.inventoryLocation.ownerId===ownerId)
+        object(record.id,GAME_OBJECT_TYPE.item).inventoryLocation=null;
+      }
      }else if(operation==='A'){
       const item=object(record.id,GAME_OBJECT_TYPE.item);item.item=mergeNetworkItem(item.item,record.item);item.replicationRemoved=false;item.areaId=OBJECT_INVALID;if(!['I','i'].includes(channel))item.equipmentOwnerId=null;
       item.inventoryLocationStatus='current';
@@ -296,7 +303,10 @@ export class NetworkWorld {
      }else if(operation==='U'||operation==='M'){
       const item=object(record.id,GAME_OBJECT_TYPE.item);
       if(record.stackSize!==undefined){item.item??={};item.item.stackSize=record.stackSize;item.item.field280=record.field280;item.item.cost=record.field280;}
-      if(record.x!==undefined&&index>=0){Object.assign(view.entries[index],{x:record.x,y:record.y});item.inventoryLocation={channel,ownerId,x:record.x,y:record.y};item.inventoryLocationStatus='current';}
+      if(record.x!==undefined&&(index>=0||channel==='R'&&item.inventoryLocation?.channel===channel&&item.inventoryLocation.ownerId===ownerId)){
+       if(index>=0)Object.assign(view.entries[index],{x:record.x,y:record.y});
+       item.inventoryLocation={channel,ownerId,x:record.x,y:record.y};item.inventoryLocationStatus='current';
+      }
      }else throw new Error('Unsupported replicated inventory operation');
      continue;
     }

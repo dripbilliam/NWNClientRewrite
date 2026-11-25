@@ -33,6 +33,13 @@ var notice: Label
 var footer: Label
 var ac: Label
 var pages: Array = []
+var drag_tab_timer: Timer
+var drag_tab := -1
+var click_pickup:=false:
+	set(enabled):
+		if not enabled and click_pickup and active_item_drag().get("clickPickup",false): cancel_item_drag()
+		click_pickup=enabled
+var click_tab_pressed:=false
 var examine_mode := false
 var item_controls: Dictionary = {}
 var blocked_container_serial := -1
@@ -92,11 +99,19 @@ func setup(storage: String = "user://native-menu-layout.cfg",window_key: String=
 	row.add_child(repository)
 	var pager := VBoxContainer.new()
 	row.add_child(pager)
+	drag_tab_timer=Timer.new()
+	drag_tab_timer.one_shot=true
+	drag_tab_timer.wait_time=0.35
+	drag_tab_timer.timeout.connect(_switch_drag_tab)
+	add_child(drag_tab_timer)
 	for page in 6:
 		var button := Button.new()
 		button.text = str(page + 1)
 		button.focus_mode = Control.FOCUS_NONE
-		button.pressed.connect(func(): request.emit({"kind": "inventory-page", "viewId": view_id, "page": page}))
+		button.pressed.connect(_request_page.bind(page))
+		button.mouse_entered.connect(func(): _hover_drag_tab(page))
+		button.mouse_exited.connect(func():
+			if drag_tab==page: drag_tab_timer.stop())
 		pager.add_child(button)
 		pages.append(button)
 	footer = Label.new()
@@ -122,6 +137,7 @@ func setup(storage: String = "user://native-menu-layout.cfg",window_key: String=
 	reset()
 
 func reset() -> void:
+	cancel_item_drag()
 	view_id = -1; selected = -1; wanted = false
 	examine_mode=false
 	blocked_container_serial = -1
@@ -156,10 +172,13 @@ func present_received(opened: bool) -> void:
 	wanted=opened
 	if opened and not native_icon_gate:show();move_to_front()
 	else:
-		if not opened: retire_scene_icons()
+		if not opened:
+			cancel_item_drag()
+			retire_scene_icons()
 		examine_mode=false;hide()
 
 func close_inventory() -> void:
+	cancel_item_drag()
 	examine_mode=false
 	blocked_container_serial = int(state.get("container", {}).get("serial", -1))
 	blocked_store_generation = int(state.get("store", {}).get("generation", -1))
@@ -187,6 +206,9 @@ func receive(message: Dictionary) -> void:
 				if not message.get("automatic", false) or not (new_store or new_container): return
 				wanted = true
 				if not native_icon_gate: show(); move_to_front()
+			var drag:=active_item_drag()
+			var retain_drag: bool=not drag.is_empty() and int(drag.viewId)==view_id and int(drag.entryId)==int(message.get("dragEntry",-1))
+			if not drag.is_empty() and not retain_drag: cancel_item_drag()
 			var selected_item: int = int(items[selected].itemId) if items.has(selected) else -1
 			view_id = int(message.viewId)
 			state = message.duplicate(true)
@@ -195,6 +217,10 @@ func receive(message: Dictionary) -> void:
 			# new view is installed. seal_scene_icon_view removes only departed items.
 			scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
 			for item in message.items: items[int(item.entryId)] = item
+			if retain_drag:
+				var carried: Dictionary=message.get("carriedDragRow",{})
+				if not carried.is_empty(): items[int(carried.entryId)]=carried
+				drag.viewId=view_id
 			selected = -1
 			for id in items:
 				if int(items[id].itemId) == selected_item: selected = id; break
@@ -257,7 +283,7 @@ func render() -> void:
 	ac.move_to_front()
 	ac.text = "AC: " + (str(int(state.armorClass)) if state.armorClass != null else "—")
 	var visible_rows: Dictionary={}
-	for item in items.values():
+	for item in state.items:
 		if item.channel not in ["R","C"]: continue
 		var page: int=int(container.get("page",0)) if item.channel=="C" else int(state.page)
 		var page_rows:=5 if item.channel=="C" else 6
@@ -399,20 +425,72 @@ func item_menu(id: int, point: Vector2) -> void:
 	menu_requested.emit(id, point)
 
 func can_drop(data: Variant, slot: int) -> bool:
-	if not item_commands_enabled:return false
+	if not wanted or not item_commands_enabled:return false
 	if not data is Dictionary or data.get("kind") != "native-inventory-item" or int(data.get("viewId", -1)) != view_id or not items.has(int(data.get("entryId", -1))): return false
+	if int(data.get("dragOwner",get_instance_id()))!=get_instance_id(): return false
 	var item: Dictionary = items[int(data.entryId)]
 	if state.get("store", {}).get("open", false) and slot != 0: return false
 	return not item.pending and (slot == 0 or (int(item.slotMask) & slot) != 0)
 
 func can_shortcut(data: Dictionary) -> bool:
-	if not item_commands_enabled:return false
-	if not wanted or int(data.get("viewId", -1)) != view_id or not items.has(int(data.get("entryId", -1))): return false
+	if not can_drop(data,0): return false
 	var item: Dictionary = items[int(data.entryId)]
-	return not item.get("pending", false) and item.get("channel", "") in ["R", "I"]
+	return item.get("channel", "") in ["R", "I"]
 
 func drop_slot(data: Dictionary, slot: int) -> void:
-	operation(int(data.entryId), "equip", {"slot": slot})
+	if can_drop(data,slot): operation(int(data.entryId), "equip", {"slot": slot})
+
+func active_item_drag() -> Dictionary:
+	if not is_inside_tree() or not get_viewport().gui_is_dragging(): return {}
+	var data: Variant=get_viewport().gui_get_drag_data()
+	if data is Dictionary and data.get("kind")=="native-inventory-item" and int(data.get("dragOwner",-1))==get_instance_id(): return data
+	return {}
+
+func can_click_pickup() -> bool:
+	return click_pickup and item_commands_enabled and not examine_mode and not state.get("store",{}).get("open",false)
+
+func _input(event: InputEvent) -> void:
+	super._input(event)
+	if not click_pickup and not click_tab_pressed: return
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+		if not event.pressed:
+			if click_tab_pressed:
+				click_tab_pressed=false
+				get_viewport().set_input_as_handled()
+			return
+		click_tab_pressed=false
+		var drag:=active_item_drag()
+		if not drag.get("clickPickup",false): return
+		var viewport:=get_viewport()
+		# Consume the press so a destination button cannot also activate.
+		# Godot still routes mouse-up through its normal drop handling.
+		viewport.set_input_as_handled()
+		var hovered:=viewport.gui_get_hovered_control()
+		var tab:=pages.find(hovered)
+		if tab>=0:
+			click_tab_pressed=true
+			if tab!=int(state.get("page",-1)) and can_drop(drag,0): _request_page(tab)
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_ESCAPE and active_item_drag().get("clickPickup",false):
+		cancel_item_drag()
+		get_viewport().set_input_as_handled()
+
+func _request_page(page: int) -> void:
+	request.emit({"kind":"inventory-page","viewId":view_id,"page":page})
+
+func cancel_item_drag() -> void:
+	if is_instance_valid(drag_tab_timer): drag_tab_timer.stop()
+	if not active_item_drag().is_empty(): get_viewport().gui_cancel_drag()
+
+func _hover_drag_tab(page: int) -> void:
+	var drag:=active_item_drag()
+	if drag.get("clickPickup",false) or not can_drop(drag,0) or int(state.get("page",-1))==page or state.get("store",{}).get("open",false): return
+	drag_tab=page
+	drag_tab_timer.start()
+
+func _switch_drag_tab() -> void:
+	var drag:=active_item_drag()
+	if drag_tab>=0 and not drag.get("clickPickup",false) and pages[drag_tab].is_hovered() and can_drop(drag,0) and int(state.get("page",-1))!=drag_tab:
+		_request_page(drag_tab)
 
 func _exit_tree() -> void:
 	if is_instance_valid(store_panel): store_panel.queue_free()

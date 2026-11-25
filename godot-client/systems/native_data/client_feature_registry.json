@@ -486,6 +486,20 @@
       "forwarder": "performance"
     },
     {
+      "name": "particle-sim-reuse",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "on"
+      ],
+      "owner": "native/particle_compact.hpp",
+      "description": "Opt into compact simulation basis reuse and eligible pool traversal fusion.",
+      "status": "selectable",
+      "powershell": "ParticleSimReuse",
+      "forwarder": "performance"
+    },
+    {
       "name": "particle-lighting",
       "target": "native",
       "default": "pooled",

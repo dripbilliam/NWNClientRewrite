@@ -1,6 +1,6 @@
 # NWN-84: retained native-style item icon implementation plan
 
-Status: design only, 2026-11-14. No client source changed by this plan. It applies to **item** icons in inventory/equipment, quickbar, barter/store, and item examine. The original-binary facts are in [native icon flow](native-icon-flow.md), [render and texture tail](native-icon-render-tail.md), [GUI presentation](../nwn75/gui-presentation.md), and [legacy GUI draw ownership](../nwn75/legacy-gui-draw-ownership.md). The current client consumer map is [client icon consumers](client-icon-consumers.md). Those maps retain explicit open edges; this document must not be treated as proof of full visual parity.
+Status: design only, 2026-11-14. No client source changed by this plan. It applies to **item** icons in inventory/equipment, quickbar, barter/store, and item examine. The original-binary facts are in [native icon flow](native-icon-flow.md), [render and texture tail](native-icon-render-tail.md), [GUI presentation](../stock-render-tree/gui-presentation.md), and [legacy GUI draw ownership](../stock-render-tree/legacy-gui-draw-ownership.md). The current client consumer map is [client icon consumers](client-icon-consumers.md). Those maps retain explicit open edges; this document must not be treated as proof of full visual parity.
 
 ## Method to preserve
 

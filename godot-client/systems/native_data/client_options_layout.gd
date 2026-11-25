@@ -21,10 +21,16 @@ static func definition() -> Array:
 			check("profile_toggle","Detailed frame profiling"),
 			label("Profiling has overhead. Timings are saved to the session log.\nCPU spans and asynchronous GPU timings overlap."),
 			check("show_blockers_toggle","Show invisible blockers (diagnostic)"),
+			control("row","",{},[label("Prediction group lookup cell size"),choice("drive_group_cell_size_select",[
+				["Full scan",0],["5 NWN units",5],["10 NWN units",10],["20 NWN units",20],["40 NWN units",40]],
+				{"size_flags_horizontal":Control.SIZE_EXPAND_FILL,"focus_mode":Control.FOCUS_ALL,"tooltip_text":"Grid size for finding collision candidates during movement prediction. Collision distances stay the same."})]),
 			button("entity_inspector_button","Entity inspector…"),
 			control("rich","performance",{"custom_minimum_size":Vector2(520,360),"size_flags_vertical":Control.SIZE_EXPAND_FILL})]),
 		control("scroll","interface",{"name":"Interface","horizontal_scroll_mode":ScrollContainer.SCROLL_MODE_DISABLED},[control("column","",{},[
 			check("creature_toggle","Show creature equipment slots"),button("login_profiles_button","Login profiles…"),button("chat_settings_button","Chat settings…"),
+			check("inventory_click_pickup_toggle","Click to pick up and place inventory items"),
+			control("row","",{},[label("Inventory background"),choice("inventory_background_select",["Installed artwork","Adjustable","Classic opaque"],{"size_flags_horizontal":Control.SIZE_EXPAND_FILL,"focus_mode":Control.FOCUS_ALL})]),
+			control("row","",{},[label("Inventory backdrop opacity (%)"),control("number","inventory_opacity_control",{"min_value":0,"max_value":100,"step":1,"size_flags_horizontal":Control.SIZE_EXPAND_FILL})]),
 			control("row","",{},[label("Tooltip delay (ms)"),control("number","tooltip_delay_control",{"min_value":1,"max_value":5000,"step":1,"value":100,"size_flags_horizontal":Control.SIZE_EXPAND_FILL})]),
 			control("row","",{},[label("Highlight double-tap (ms)"),control("number","tooltip_doubletap_control",{"min_value":0,"max_value":1000,"step":1,"value":200,"size_flags_horizontal":Control.SIZE_EXPAND_FILL,"tooltip_text":"Double-tap the highlight key to keep highlighting on. Set 0 to disable double-tap."})]),
 			check("radial_group_abilities","Always group class abilities"),check("radial_group_spells","Always group spellcasting classes"),
@@ -32,6 +38,8 @@ static func definition() -> Array:
 			label("Radial action text"),choice("radial_text_mode",["Off","Hovered action","All actions"]),
 			check("radial_hide_icons","Hide radial icons"),check("radial_text_in_center","Radial text in center"),check("radial_center_align_text","Center-align radial text"),
 			check("radial_screen_center","Open radial at screen center"),check("radial_left_mirror","Left button mirrors right in radial menus")])]),
+		control("column","enhancements",{"name":"Enhancements"},[
+			check("combined_backpack_toggle","Show all backpack pages in one window")]),
 		control("column","prework",{"name":"Prework"},[
 			label("Prepare installed or downloaded content before joining.\nSave processed models and opened UI artwork for later sessions.\nMore workers use more CPU, memory and disk bandwidth."),
 			choice("prework_content",["Finding local content…"],{"disabled":true}),

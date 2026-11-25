@@ -1,5 +1,5 @@
 {
-  "id": "godot-4.7.2-rig-1",
+  "id": "godot-4.7.2-rig-2-scene-pack",
   "source": {
     "file": "godot-source.tar.gz",
     "url": "https://codeload.github.com/godotengine/godot/tar.gz/ed1daf0bf001b61586d9930840f2f1394092c079",
@@ -28,6 +28,18 @@
     {
       "file": "native/engine_patches/animation-mixer-batch-position-rotation.patch",
       "sha256": "ff7ccfe8490511d76a879afe5cb10203ee10d705cf09e624cb6dbc5c47ad2f47"
+    },
+    {
+      "file": "native/engine_patches/pack-runtime-mesh-storage-properties.patch",
+      "sha256": "43cca99be4110d1922fadea139a2be7c8c115b6a73f46a96238267ff09fd2852"
+    },
+    {
+      "file": "native/engine_patches/skeleton-force-stable-single-pass.patch",
+      "sha256": "aa1da126dc685361804355fa5123008a7c0755110eacb4124dd551333f175853"
+    },
+    {
+      "file": "native/engine_patches/particle-pose-dirty-cache.patch",
+      "sha256": "8d09eb926476a48576b202ba15fa2833622164ee3124e233169f043e87c76085"
     }
   ],
   "buildArguments": [

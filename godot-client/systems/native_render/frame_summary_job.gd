@@ -16,6 +16,7 @@ static func calculate(rows: Array) -> Dictionary:
 		while values.size()<rows.size(): values.append(0.0)
 		values.sort()
 		output[name]={"mean":total/values.size(),"when_present_mean":total/present,"p95":values[mini(values.size()-1,ceili(values.size()*0.95)-1)],"max":values[-1],"samples":values.size(),"active_samples":present}
+		if name=="wall_ms":output[name].p99=values[mini(values.size()-1,ceili(values.size()*0.99)-1)]
 	return {"metrics":output,"worst_frame":worst.duplicate(),"frames":rows.size()}
 func run(owned_rows: Array,generation: int) -> void:
 	var began:=Time.get_ticks_usec()

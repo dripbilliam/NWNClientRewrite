@@ -42,6 +42,18 @@ The owned-local route assumes the install/server under `../FullDecomp/NwnRootIns
 
 Normal gameplay rendering uses the integrated profile. `-RenderProfile legacy` remains a diagnostic rollback. Retain the user's preferences, including particle settings; do not count effects-off results as full-effect acceptance.
 
+To try combined particle simulation reuse with the standard client, add
+`-ParticleSimReuse` to the PowerShell launcher. It enables quaternion basis
+reuse and eligible pool traversal fusion for that launch. This can improve
+movement and has shown slower idle frames in a shadows-off test.
+
+```powershell
+.\godot-client\join-native.ps1 -PerformanceRuntime standard -ParticleSimReuse
+```
+
+For direct bootstrap launches, rebuild the kernel through
+`godot-client/tools/ensure-particle-kernel.ps1` and pass `--particle-sim-reuse=on`.
+
 Main Menu → Options → Prework offers Prepare assets, Cancel preparation, Clear saved prework and saved-file inspection for selected installed/downloaded content. Preparing content is separate from joining.
 
 ## Development references

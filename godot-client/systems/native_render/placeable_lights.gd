@@ -4,6 +4,7 @@ extends Node3D
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const OriginalModel=preload("res://systems/native_render/effect_model.gd")
 const Objects=preload("res://systems/native_render/object_stream.gd")
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 var assets
 var world
 var pool
@@ -19,6 +20,7 @@ var closed:=false
 var dirty:=false
 var created:=0
 var removed:=0
+var reconciliations:=0
 var failed: Dictionary={}
 static func row(table: Dictionary,index: int) -> Dictionary:
 	var rows: Array=table.get("orderedRows",[])
@@ -48,18 +50,24 @@ func receive_area(lights: Array) -> void:
 	if next!=area_records: area_records=next.duplicate(true); dirty=true
 func receive(values: Array,deleted: Array=[],full: bool=false) -> void:
 	if closed:return
-	if full: objects.clear()
-	for id in deleted: objects.erase(int(id))
+	if full and not objects.is_empty():
+		objects.clear()
+		dirty=true
+	for id in deleted:
+		if objects.erase(int(id)):dirty=true
 	for object in values:
 		var id:=int(object.get("id",-1))
-		if int(object.get("areaId",-1))!=world.area_id or int(object.get("objectType",0))!=9 or object.get("replicationRemoved",false): objects.erase(id); continue
-		if object.get("replicated",{}).has("lightOn"):objects[id]=object
-		else:objects.erase(id)
-	dirty=true
-func instance_ready(_id: int,_source: Dictionary,_instance) -> void: dirty=true
+		if int(object.get("areaId",-1))==world.area_id and int(object.get("objectType",0))==9 and not object.get("replicationRemoved",false) and object.get("replicated",{}).has("lightOn"):
+			objects[id]=object
+			dirty=true
+		elif objects.erase(id):dirty=true
+func instance_ready(id: int,_source: Dictionary,_instance) -> void:
+	if objects.has(id):dirty=true
 func instance_removed(id: int) -> void:
-	if instances.has(id): instances[id].detach()
-	dirty=true
+	if instances.has(id):
+		instances[id].detach()
+		dirty=true
+	elif objects.has(id):dirty=true
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not requests.has(id):return
 	var name: String=requests[id]; requests.erase(id)
@@ -130,7 +138,9 @@ func erase(id: int) -> void:
 	configurations.erase(id);failed.erase(id)
 func _process(_delta: float) -> void:
 	if closed or not dirty or not requests.is_empty() or not tables.has_all(["placeables","lightcolor"]) or bundle.is_empty():return
+	var reconcile_began:=Timing.begin()
 	dirty=false
+	reconciliations+=1
 	var desired:=plans()
 	for id in instances.keys():
 		if not desired.has(id):erase(id)
@@ -144,12 +154,13 @@ func _process(_delta: float) -> void:
 		if instances.has(id):apply(id,plan);continue
 		if count>=8 or Time.get_ticks_usec()-began>=3000:dirty=true;break
 		install_light(id,plan);count+=1
+	Timing.finish("placeable_lights_reconcile_ms",reconcile_began)
 func snapshot() -> Dictionary:
 	var lights: Array=[]
 	for id in instances:
 		var plan: Dictionary=configurations.get(id,{})
 		lights.append({"id":id,"appearance":plan.get("appearance"),"color":plan.get("color"),"offset":plan.get("offset"),"dynamic":plan.get("dynamic",false)})
-	return {"count":instances.size(),"created":created,"removed":removed,"pending":requests.size(),"errors":errors.duplicate(true),"lights":lights}
+	return {"count":instances.size(),"created":created,"removed":removed,"reconciliations":reconciliations,"pending":requests.size(),"errors":errors.duplicate(true),"lights":lights}
 func close() -> void:
 	if closed:return
 	closed=true;set_process(false)

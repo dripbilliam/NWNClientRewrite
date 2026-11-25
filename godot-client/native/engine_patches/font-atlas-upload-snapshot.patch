@@ -1,0 +1,56 @@
+diff --git a/modules/text_server_adv/text_server_adv.cpp b/modules/text_server_adv/text_server_adv.cpp
+index ed59f58..341c2fb 100644
+--- a/modules/text_server_adv/text_server_adv.cpp
++++ b/modules/text_server_adv/text_server_adv.cpp
+@@ -3804,6 +3804,12 @@ RID TextServerAdvanced::_font_get_glyph_texture_rid(const RID &p_font_rid, const
+ 				img = tex.image->duplicate();
+ 				img->generate_mipmaps();
+ 			}
++			// The render queue must own an immutable Image wrapper, not the
++			// atlas object which subsequent glyph rasterization mutates.
++			// Image::_duplicate shares byte COW storage until the next write.
++			if (img == tex.image) {
++				img = img->duplicate();
++			}
+ 			if (tex.texture.is_null()) {
+ 				tex.texture = ImageTexture::create_from_image(img);
+ 			} else {
+@@ -3854,6 +3860,12 @@ Size2 TextServerAdvanced::_font_get_glyph_texture_size(const RID &p_font_rid, co
+ 				img = tex.image->duplicate();
+ 				img->generate_mipmaps();
+ 			}
++			// The render queue must own an immutable Image wrapper, not the
++			// atlas object which subsequent glyph rasterization mutates.
++			// Image::_duplicate shares byte COW storage until the next write.
++			if (img == tex.image) {
++				img = img->duplicate();
++			}
+ 			if (tex.texture.is_null()) {
+ 				tex.texture = ImageTexture::create_from_image(img);
+ 			} else {
+@@ -4330,6 +4342,12 @@ void TextServerAdvanced::_font_draw_glyph(const RID &p_font_rid, const RID &p_ca
+ 					img = tex.image->duplicate();
+ 					img->generate_mipmaps();
+ 				}
++				// The render queue must own an immutable Image wrapper, not the
++				// atlas object which subsequent glyph rasterization mutates.
++				// Image::_duplicate shares byte COW storage until the next write.
++				if (img == tex.image) {
++					img = img->duplicate();
++				}
+ 				if (tex.texture.is_null()) {
+ 					tex.texture = ImageTexture::create_from_image(img);
+ 				} else {
+@@ -4469,6 +4487,12 @@ void TextServerAdvanced::_font_draw_glyph_outline(const RID &p_font_rid, const R
+ 					img = tex.image->duplicate();
+ 					img->generate_mipmaps();
+ 				}
++				// The render queue must own an immutable Image wrapper, not the
++				// atlas object which subsequent glyph rasterization mutates.
++				// Image::_duplicate shares byte COW storage until the next write.
++				if (img == tex.image) {
++					img = img->duplicate();
++				}
+ 				if (tex.texture.is_null()) {
+ 					tex.texture = ImageTexture::create_from_image(img);
+ 				} else {

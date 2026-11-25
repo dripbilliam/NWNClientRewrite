@@ -3,7 +3,7 @@ const stringify=value=>JSON.stringify(value,(_key,v)=>typeof v==='bigint'?{nativ
 class RawWorldDeltas{
  constructor(){this.reset();}
  reset(){this.base=null;this.pending=null;}
- plan({connection,generation,serial,data}){
+ plan({connection,generation,serial,data,reuseArea=false}){
   if(this.pending)throw Error('Raw world update is awaiting acknowledgement');
   if(!Number.isSafeInteger(connection)||connection<0||!Number.isSafeInteger(generation)||generation<0||!Number.isSafeInteger(serial)||serial<1||!Array.isArray(data?.objects)||data.objects.length>65536)throw Error('Invalid raw delta scope');
   const {objects,...header}=data,records=new Map(),upserts=[];
@@ -13,10 +13,19 @@ class RawWorldDeltas{
    const encoded=stringify(object);records.set(id,encoded);
    if(full||this.base.records.get(id)!==encoded)upserts.push(object);
   }
-  const removed=full?[]:[...this.base.records.keys()].filter(id=>!records.has(id)),encodedHeader=stringify(header);
-  if(!full&&!upserts.length&&!removed.length&&encodedHeader===this.base.header)return null;
-  this.pending={connection,generation,serial,records,header:encodedHeader};
-  return {...header,objects:upserts,bridgeMode:full?'full':'delta',bridgeBaseSerial:full?-1:this.base.serial,removedObjectIds:removed};
+  const removed=full?[]:[...this.base.records.keys()].filter(id=>!records.has(id));
+  const encodedHeader=stringify(reuseArea?{...header,area:undefined}:header);
+  const encodedArea=reuseArea?stringify(header.area):null;
+  const sameArea=!full&&encodedArea===this.base.area;
+  if(sameArea&&!upserts.length&&!removed.length&&encodedHeader===this.base.header)return null;
+  this.pending={connection,generation,serial,records,header:encodedHeader,area:encodedArea};
+  // The receiver restores the exact area from the acknowledged delta base.
+  const update={...header,objects:upserts,bridgeMode:full?'full':'delta',bridgeBaseSerial:full?-1:this.base.serial,removedObjectIds:removed};
+  if(reuseArea&&sameArea&&header.area&&typeof header.area==='object'&&!Array.isArray(header.area)&&encodedArea!=='{}'){
+   delete update.area;
+   update.bridgeReuseArea=true;
+  }
+  return update;
  }
  acknowledge({connection,generation,serial}){
   if(!this.pending||this.pending.connection!==connection||this.pending.generation!==generation||this.pending.serial!==serial)return false;

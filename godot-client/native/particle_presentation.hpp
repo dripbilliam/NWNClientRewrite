@@ -27,14 +27,14 @@ struct Step {
   value.cx_random=cx_random;
   value.profile=controls.profile;value.missing_chunks=&owner->missing_chunks;value.wind_token=(owner->kind!=3&&(owner->compact_state.flags&4))?controls.wind_token:0;value.direct_scene=controls.direct_scene;value.terrain_index=controls.terrain_index;value.static_index=controls.static_index;
  }
- void test_view(size_t& reject_plane,const V3& wind){
+ void test_view(size_t& reject_plane,const V3& wind,bool reuse_authored_bounds=false){
   checked=true;
   const auto scale=std::max(1.0f,pose.maximum_scale);
   if(!controls.original_admission){
-   culled=owner->culled(*camera,pose.position,controls.source_flags,scale,radius,wind);
+   culled=owner->culled(*camera,pose.position,controls.source_flags,scale,radius,wind,reuse_authored_bounds);
    return;
   }
-  radius=controls.explicit_radius>=0?controls.explicit_radius:owner->radius(controls.source_flags,wind)*scale;
+  radius=controls.explicit_radius>=0?controls.explicit_radius:(reuse_authored_bounds?owner->windless_authored_radius(controls.source_flags):owner->radius(controls.source_flags,wind))*scale;
   // The native leaf tries the previous rejecting plane first.
   if(!std::isfinite(radius)||radius<0)return;
   const V3 point{pose.position[0],pose.position[2],-pose.position[1]};
@@ -44,7 +44,7 @@ struct Step {
    if(distance-radius>0){culled=true;reject_plane=index;break;}
   }
  }
- void advance(NativeOwner& value,const EngineVar& services,const std::optional<NativeOwner::View>& view,size_t& reject_plane,const EngineVar& target_provider){
+ void advance(NativeOwner& value,const EngineVar& services,const std::optional<NativeOwner::View>& view,size_t& reject_plane,const EngineVar& target_provider,bool reuse_static_bounds){
   if(!value.configured||!value.compact_records||!value.typed_frame||!value.pose_id)throw std::runtime_error("Native presentation requires a configured typed owner with native poses");
   owner=&value;providers=&services;camera=view;prepared=false;culled=false;early_culled=false;checked=false;animation_invoked=false;updated=false;radius=0;chunk_proof=0;direct_queries=direct_hits=0;controls_ms=pose_ms=admission_ms=simulation_ms=geometry_ms=collision_ms=0;
   resident::FieldKeyScope fields(owner->field_keys);auto phase=controls.profile?Clock::now():Clock::time_point{};
@@ -58,7 +58,7 @@ struct Step {
     &&!(owner->use_parameters&&owner->parameter_has(resident::hot_parameters::DETONATE)&&owner->parameter_integer(resident::hot_parameters::DETONATE)!=0)){
    pose=owner->read_pose();
    finish(pose_ms);
-   test_view(reject_plane,{});
+   test_view(reject_plane,{},reuse_static_bounds);
    finish(admission_ms);
    if(culled){
     if(std::abs(emitter.birthRate)>32768||owner->allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");
@@ -68,6 +68,7 @@ struct Step {
   }
   owner->sample(controls.clip,controls.time);finish(controls_ms);
   if(!controls.patch.nil()){
+   owner->invalidate_authored_bounds();
    auto names=::method(controls.patch,"keys");for(int64_t n=0;n<::size(names);++n){const auto name=engine_string(::at(names,n));resident::set(owner->state,name.c_str(),resident::Var(::get(controls.patch,name.c_str())));resident::compact_particle::apply_emitter_field(owner->compact_state,owner->state,{name.c_str(),resident::field_index(name.c_str())});}
   }
   if(owner->use_parameters&&owner->parameter_has(resident::hot_parameters::DETONATE)&&owner->parameter_integer(resident::hot_parameters::DETONATE)!=0){resident::set(owner->state,particle_field::detonate108,owner->parameter_get(resident::hot_parameters::DETONATE));owner->compact_state.detonate108=static_cast<int32_t>(owner->parameter_integer(resident::hot_parameters::DETONATE));resident::set_int(owner->parameters,"detonate",0);}
@@ -125,6 +126,7 @@ struct Entry {
  bool enabled=true,source_animating=false,use_world_collision=true;double elapsed=0,clip_length=0;std::string static_clip;uint64_t source_key=0;int16_t node_order=0;float distance=0;
  // -1 uses live scene queries for callers without Node3D notifications.
  int8_t scene_status=-1;
+ bool controls_dirty=true;
  int64_t frames=0,culling_checks=0,culled_frames=0,culling_fallbacks=0,peak_active=0,published_vertices=0,direct_queries=0,direct_hits=0;
 };
 struct GeometryJob {
@@ -170,6 +172,7 @@ struct Owner {
  std::unique_ptr<particle_geometry_worker::Worker> geometry_worker;
  uint64_t geometry_worker_frames=0,geometry_worker_vertices=0;
  FrameSampler sampler;FrameSampler::Invocation* sampling_context=nullptr;bool setup_boundary=false;uint64_t animating_key_binds=0,clock_validity_dispatches=0,static_noncallable_uses=0,static_null_callable_uses=0,clock_native_reads=0,clock_native_fallbacks=0;
+ uint64_t control_snapshots=0;
  GDExtensionObjectPtr identity=nullptr;
  std::unordered_map<int64_t,std::unique_ptr<Entry>> entries;std::vector<int64_t> order;
  std::vector<Entry*> frame_entries;bool order_dirty=true;
@@ -226,6 +229,7 @@ struct Owner {
  }
  void control(const EngineVar& config){
   if(running)throw std::runtime_error("Native presentation controls require a frame boundary");auto found=entries.find(::get(config,"id").integer());if(found==entries.end())return;auto& entry=*found->second;auto& c=entry.controls;
+  entry.controls_dirty=true;
   if(::has(config,"enabled"))entry.enabled=::get(config,"enabled").boolean();if(::has(config,"culling"))c.culling=::get(config,"culling").boolean();if(::has(config,"draw_enabled"))c.draw_enabled=::get(config,"draw_enabled").boolean();
   if(::has(config,"childless_chunk_admission"))c.childless_chunk_admission=::get(config,"childless_chunk_admission").boolean();
   if(::has(config,"wind_service"))c.wind_service=::get(config,"wind_service").boolean();
@@ -288,21 +292,38 @@ struct Owner {
    if(!eligible)continue;
    if(!entry.owner){if(sampler.coarse_phases&&sampling_context)++sampling_context->fallbacks;::method(entry.fallback,"call",{EngineVar::number(delta)});++fallbacks;continue;}
    const auto source_begin=profile?Clock::now():Clock::time_point{};
-   const bool source_exists=fused?direct_source_exists:instance_from_id(entry.owner->source_id)!=nullptr;
+   const bool source_exists=fused?direct_source_exists:entry.owner->source_exists();
    if(profile)boundary_ms[1]+=std::chrono::duration<double,std::milli>(Clock::now()-source_begin).count();
    if(!source_exists)continue;
    // Chunk templates arrive asynchronously. Match the established early
    // return (no time/RNG/physics advance), then discard this cold probe once
    // ready. Ready effects have no per-emitter script readiness callback.
    if(!entry.readiness.nil()){if(sampler.coarse_phases&&sampling_context)++sampling_context->readiness;if(!::method(entry.readiness,"call").boolean())continue;entry.readiness=EngineVar();}
-   entry.elapsed+=delta;auto& next=entry.step.controls;next=entry.controls;next.delta=static_cast<float>(delta);next.profile=profile;next.clip=entry.static_clip;if(animation_snapshot&&!frame_animation_read){frame_animation=animation_enabled(common);frame_animation_read=true;}if(setup_boundary&&!animation_snapshot&&!animating_key){animating_key=&::key("animating");++animating_key_binds;}next.animate=(animation_snapshot?frame_animation:animation_enabled(common,animating_key))||(entry.source_key&&entry.source_animating);double time=entry.elapsed;
+   entry.elapsed+=delta;
+   auto& next=entry.step.controls;
+   if(!cx_records||entry.controls_dirty){
+    next=entry.controls;
+    ++control_snapshots;
+    // Clear consumed one-shot inputs at the next eligible copy boundary.
+    // If advance throws, the pending inputs still belong to the entry.
+    entry.controls_dirty=!next.patch.nil()||next.detonate;
+   }
+   next.delta=static_cast<float>(delta);
+   next.profile=profile;
+   if(!cx_records||entry.clock_route==2)next.clip=entry.static_clip;
+   if(animation_snapshot&&!frame_animation_read){frame_animation=animation_enabled(common);frame_animation_read=true;}
+   if(setup_boundary&&!animation_snapshot&&!animating_key){animating_key=&::key("animating");++animating_key_binds;}
+   next.animate=(animation_snapshot?frame_animation:animation_enabled(common,animating_key))||(entry.source_key&&entry.source_animating);
+   double time=entry.elapsed;
    const auto clock_begin=profile?Clock::now():Clock::time_point{};
    bool actor_clock=false;if(!setup_boundary||entry.clock_route==2){++clock_validity_dispatches;actor_clock=particle_frame_group::valid_callable(entry.clock);}else if(entry.clock_route==1)++static_null_callable_uses;else ++static_noncallable_uses;
    if(actor_clock){if(sampler.coarse_phases&&sampling_context)++sampling_context->clocks;if(entry.clock_binding&&particle_clock_binding::read(*entry.clock_binding,next.clip,time))++clock_native_reads;else{if(entry.clock_binding)++clock_native_fallbacks;auto sampled=::method(entry.clock,"call");if(sampled.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)throw std::runtime_error("Native presentation clock must return a dictionary");next.clip=::has(sampled,"clip")?engine_string(::get(sampled,"clip")):"";time=::has(sampled,"time")?::get(sampled,"time").number():0;}}
    else if(entry.clip_length>0){time=std::fmod(time,entry.clip_length);if(time<0)time+=entry.clip_length;}
    if(profile)boundary_ms[2]+=std::chrono::duration<double,std::milli>(Clock::now()-clock_begin).count();
    next.time=static_cast<float>(time);next.direct_scene=direct_scene&&entry.use_world_collision;next.terrain_index=terrain;next.static_index=statics;
-   entry.step.advance(*entry.owner,entry.providers,camera,reject_plane,entry.target_provider);entry.controls.patch=EngineVar();entry.controls.detonate=false;++prepared;
+   entry.step.advance(*entry.owner,entry.providers,camera,reject_plane,entry.target_provider,cx_records);
+   if(!cx_records||entry.controls_dirty){entry.controls.patch=EngineVar();entry.controls.detonate=false;}
+   ++prepared;
    if(profile){phases[1]+=entry.step.controls_ms;phases[2]+=entry.step.pose_ms;phases[3]+=entry.step.admission_ms;phases[4]+=entry.step.simulation_ms;}
    entry.direct_queries+=static_cast<int64_t>(entry.step.direct_queries);entry.direct_hits+=static_cast<int64_t>(entry.step.direct_hits);
    if(entry.step.checked)++entry.culling_checks;else if(next.culling)++entry.culling_fallbacks;
@@ -464,9 +485,10 @@ struct Owner {
   if(input.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)throw std::runtime_error("Sparse frame sampler requires a dictionary");
   const bool next_setup=::has(input,"setup_boundary")?::get(input,"setup_boundary").boolean():setup_boundary;
   const bool reset=::has(input,"reset")&&::get(input,"reset").boolean();sampler.configure(input);setup_boundary=next_setup;if(reset)animating_key_binds=clock_validity_dispatches=static_noncallable_uses=static_null_callable_uses=0;
+  if(reset)control_snapshots=0;
  }
  EngineVar sampler_info()const{
-  auto out=sampler.inspect();::set(out,"setup_boundary",EngineVar::boolean(setup_boundary));::set(out,"animating_key_binds",EngineVar::integer(static_cast<int64_t>(animating_key_binds)));::set(out,"clock_validity_dispatches",EngineVar::integer(static_cast<int64_t>(clock_validity_dispatches)));::set(out,"static_noncallable_uses",EngineVar::integer(static_cast<int64_t>(static_noncallable_uses)));::set(out,"static_null_callable_uses",EngineVar::integer(static_cast<int64_t>(static_null_callable_uses)));int64_t routes[3]{},bindings=0;for(const auto& pair:entries)if(pair.second->owner){++routes[pair.second->clock_route];if(pair.second->clock_binding)++bindings;}::set(out,"compiled_noncallable_entries",EngineVar::integer(routes[0]));::set(out,"compiled_null_callable_entries",EngineVar::integer(routes[1]));::set(out,"live_callable_entries",EngineVar::integer(routes[2]));::set(out,"native_clock_enabled",EngineVar::boolean(particle_clock_binding::enabled));::set(out,"native_clock_available",EngineVar::boolean(particle_clock_binding::available));::set(out,"native_clock_bindings",EngineVar::integer(bindings));::set(out,"native_clock_reads",EngineVar::integer(static_cast<int64_t>(clock_native_reads)));::set(out,"native_clock_fallbacks",EngineVar::integer(static_cast<int64_t>(clock_native_fallbacks)));return out;
+  auto out=sampler.inspect();::set(out,"control_snapshots",EngineVar::integer(static_cast<int64_t>(control_snapshots)));::set(out,"setup_boundary",EngineVar::boolean(setup_boundary));::set(out,"animating_key_binds",EngineVar::integer(static_cast<int64_t>(animating_key_binds)));::set(out,"clock_validity_dispatches",EngineVar::integer(static_cast<int64_t>(clock_validity_dispatches)));::set(out,"static_noncallable_uses",EngineVar::integer(static_cast<int64_t>(static_noncallable_uses)));::set(out,"static_null_callable_uses",EngineVar::integer(static_cast<int64_t>(static_null_callable_uses)));int64_t routes[3]{},bindings=0;for(const auto& pair:entries)if(pair.second->owner){++routes[pair.second->clock_route];if(pair.second->clock_binding)++bindings;}::set(out,"compiled_noncallable_entries",EngineVar::integer(routes[0]));::set(out,"compiled_null_callable_entries",EngineVar::integer(routes[1]));::set(out,"live_callable_entries",EngineVar::integer(routes[2]));::set(out,"native_clock_enabled",EngineVar::boolean(particle_clock_binding::enabled));::set(out,"native_clock_available",EngineVar::boolean(particle_clock_binding::available));::set(out,"native_clock_bindings",EngineVar::integer(bindings));::set(out,"native_clock_reads",EngineVar::integer(static_cast<int64_t>(clock_native_reads)));::set(out,"native_clock_fallbacks",EngineVar::integer(static_cast<int64_t>(clock_native_fallbacks)));return out;
  }
  EngineVar timed_frame(const EngineVar& input){
   if(!sampler.enabled||!sampler.select(entries.size()))return frame(input);
@@ -491,7 +513,9 @@ struct Owner {
   const auto number=[&](const char* name,int64_t value){::set(out,name,EngineVar::integer(value));};number("frames",e.frames);number("active",static_cast<int64_t>(e.owner->compact_pool.active.size()));number("free",static_cast<int64_t>(e.owner->compact_pool.free.size()));number("allocated",e.owner->allocations);number("constant_hits",e.owner->constant_hits);number("sampled_channels",e.owner->sampled_channels);number("vertices",e.published_vertices);number("peak_active",e.peak_active);number("culling_checks",e.culling_checks);number("culled_frames",e.culled_frames);number("culling_fallbacks",e.culling_fallbacks);number("direct_scene_queries",e.direct_queries);number("direct_scene_hits",e.direct_hits);::set(out,"culled",EngineVar::boolean(e.step.culled));::set(out,"radius",EngineVar::number(e.step.radius));::set(out,"elapsed",EngineVar::number(e.elapsed));::set(out,"pending_detonate",EngineVar::boolean(e.controls.detonate));::set(out,"pending_patch",EngineVar::boolean(!e.controls.patch.nil()));::set(out,"childless_chunk_admission",EngineVar::boolean(e.controls.childless_chunk_admission));::set(out,"chunk_proof",EngineVar::integer(e.step.chunk_proof));return out;
  }
  EngineVar inspect()const{
-  auto out=summary();auto layout=EngineVar::dictionary();::set(layout,"entry",EngineVar::integer(sizeof(Entry)));::set(layout,"step",EngineVar::integer(sizeof(Step)));::set(layout,"controls",EngineVar::integer(sizeof(Controls)));::set(layout,"range",EngineVar::integer(sizeof(Range)));::set(layout,"packet",EngineVar::integer(sizeof(Packet)));::set(out,"native_layout_bytes",layout);
+  auto out=summary();
+  ::set(out,"simulation_reuse",EngineVar::boolean(resident::compact_particle::preparation_reuse));
+  auto layout=EngineVar::dictionary();::set(layout,"entry",EngineVar::integer(sizeof(Entry)));::set(layout,"step",EngineVar::integer(sizeof(Step)));::set(layout,"controls",EngineVar::integer(sizeof(Controls)));::set(layout,"range",EngineVar::integer(sizeof(Range)));::set(layout,"packet",EngineVar::integer(sizeof(Packet)));::set(out,"native_layout_bytes",layout);
   if(packet){
    // Packed-array Variants share an engine wrapper: script indexed writes can
    // mutate that wrapper even when the native Frame is const. Cold inspection

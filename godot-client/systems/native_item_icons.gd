@@ -39,6 +39,7 @@ var render_epoch := 0
 var closed:=false
 var reuse_models_enabled:=not OS.get_cmdline_user_args().has("--icon-model-reuse=false")
 var keep_model_textures_on_gpu:=false
+var keep_item_textures_on_gpu:=false
 var maximum_cached_models:=32
 var cached_models: Dictionary={}
 var cache_directory:=""
@@ -257,7 +258,8 @@ func frame_rendered() -> void:
 	var draw: Dictionary=pending_draw; pending_draw={}
 	Timing.finish("icon_render_wait_ms",int(draw.wait_began))
 	var key:=str(draw.job.key)
-	if keep_model_textures_on_gpu and render_fence!=null and not assets.prework_write and key.begins_with("gui:"):
+	var keep_on_gpu:=keep_model_textures_on_gpu if key.begins_with("gui:") else keep_item_textures_on_gpu
+	if keep_on_gpu and render_fence!=null and not assets.prework_write:
 		var epoch:=int(draw.render_epoch)
 		pending_gui_snapshots[epoch]={"key":key,"began":Timing.begin()}
 		remember_prework(draw.job)

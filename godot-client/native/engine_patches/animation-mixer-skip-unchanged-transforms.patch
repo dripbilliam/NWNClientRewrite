@@ -1,0 +1,29 @@
+diff --git a/scene/animation/animation_mixer.cpp b/scene/animation/animation_mixer.cpp
+index 29655d4d..eb2a1a15 100644
+--- a/scene/animation/animation_mixer.cpp
++++ b/scene/animation/animation_mixer.cpp
+@@ -1900,6 +1900,10 @@ void AnimationMixer::_blend_process(double p_delta, bool p_update_only) {
+ }
+ 
+ void AnimationMixer::_blend_apply() {
++#ifndef _3D_DISABLED
++	// Client-owned rigs can suppress transform dirties when the applied pose is unchanged.
++	const bool skip_equal_transform_writes = has_meta(SNAME("_nwn_skip_equal_transform_writes"));
++#endif
+ 	// Finally, set the tracks.
+ 	for (const KeyValue<Animation::TrackCacheID, TrackCache *> &K : track_cache) {
+ 		TrackCache *track = K.value;
+@@ -1945,9 +1949,11 @@ void AnimationMixer::_blend_apply() {
+ 					}
+ 					if (t->loc_used && t->rot_used && t->scale_used) {
+ 						Transform3D transform = Transform3D(Basis(t->rot).scaled(t->scale), t->loc);
+-						t_node_3d->set_transform(transform);
++						if (!skip_equal_transform_writes || t_node_3d->get_transform() != transform) {
++							t_node_3d->set_transform(transform);
++						}
+ 					} else {
+-						if (t->loc_used) {
++						if (t->loc_used && (!skip_equal_transform_writes || t_node_3d->get_position() != t->loc)) {
+ 							t_node_3d->set_position(t->loc);
+ 						}
+ 						if (t->rot_used) {

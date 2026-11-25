@@ -153,7 +153,7 @@ func configure(ui,catalog,cache_path: String,layout: String="user://native-menu-
 	radial.preview_provider=radial_preview
 	radial.configure_art(art)
 	radial.configure_text(ui.inventory.frame_skin.fonts)
-	quickbar.record_valid=sheet.can_drag; quickbar.inventory_valid=func(data): return int(data.get("viewId",-1))==owner_ui.inventory.ui.view_id and owner_ui.inventory.views.has(int(data.get("entryId",-1)))
+	quickbar.record_valid=sheet.can_drag; quickbar.inventory_valid=func(data): return owner_ui.inventory.ui.can_shortcut(data)
 	quickbar.radial_valid=func(data): return owner_ui.inventory.item_context.can_shortcut(data) if data.get("kind","")=="item-radial-entry" else can_radial_shortcut(data)
 	owner_ui.inventory.ability_requested.connect(use_inventory_item)
 	if owner_ui.inventory.retained_item_icons:owner_ui.inventory.icons.prepared.connect(item_icon_prepared)

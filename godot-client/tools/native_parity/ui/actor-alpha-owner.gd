@@ -38,7 +38,9 @@ func enroll(mesh: MeshInstance3D,model_index: int) -> bool:
 	target.actor_base_transparency=source.transparency
 	if source is StandardMaterial3D:target.actor_base_depth_draw=source.depth_draw_mode
 	target.actor_alpha_endpoint=endpoint;target.actor_alpha_context=models[model_index]
-	mesh.material_override=target;target.refresh_actor_alpha();return true
+	mesh.material_override=target
+	preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(mesh)
+	target.refresh_actor_alpha();return true
 func set_alpha(value: float,model_indices: Array=[0],gob_flag18: bool=false,colour_shift: bool=true) -> bool:
 	if closed or not is_finite(value):return false
 	# Attachment propagation is explicit until native child+1c is mapped by the

@@ -13,6 +13,7 @@ const engineRuntime=performanceOptions.nativeRuntime.value,enginePackage=arg('na
 if(performanceOptions.runtime!=='standard'&&engineRuntime!=='editor')throw Error('Verified native runtime uses current project scripts; do not combine it with a packaged release');
 if(!['editor','release','review-cx','review-rig-apply'].includes(engineRuntime))throw Error('Invalid native engine runtime');
 if(engineRuntime==='review-cx'&&process.env.NWN_PARTICLE_KERNEL==='gd')throw Error('CX review requires the compiled particle kernel');
+if(managedClientOptions.values['particle-sim-reuse']==='on'&&(process.env.NWN_PARTICLE_KERNEL==='gd'||engineRuntime==='release'))throw Error('Particle simulation reuse requires the compiled kernel and current project');
 const nativeOverheadClocks=managedClientOptions.values['native-overhead-clocks']==='true';
 if(nativeOverheadClocks&&engineRuntime!=='editor')throw Error('Native overhead clock candidate requires the reviewed editor runtime; release packaging is not validated');
 const menuCheck=process.argv.includes('--menu-check'),headless=process.argv.includes('--native-headless');
@@ -89,6 +90,8 @@ if(actionParryCheck&&(!actionCheck||actionRangedCheck||actionEffectsCheck||actio
 if(actionSpecialAttackCheck&&(!actionCheck||actionRangedCheck||actionEffectsCheck||actionNuiCheck||actionParryCheck))throw Error('Special attacks require isolated melee checks');
 const localCheck=directHandoffCheck||scriptFloatingOwned||levelSourceCheck||creationCheck||actionCheck||process.argv.includes('--local-check');if(localCheck&&process.argv.includes('--public-servers'))throw Error('Local check forbids public endpoints');
 const localOnly=process.argv.includes('--local-only');
+const lightFadeView=arg('light-fade-view');
+if(lightFadeView!==undefined&&!['script','native'].includes(lightFadeView))throw Error('Invalid light fade view mode');
 const renderConfiguration=require('./native-render-configuration.cjs').resolveNativeRenderConfiguration({arg,env:process.env,isolated:localCheck||menuCheck});
 if(actionLocalVaultCheck&&(!actionCheck||actionSpecialAttackCheck||actionParryCheck||actionRangedCheck||actionFeatCheck||actionNuiCheck||actionEffectsCheck||actionBarterCheck))throw Error('Local vault checks require the isolated standard action fixture');
 if(actionLocalDeleteCheck&&(!actionLocalVaultCheck||headless||actionLobbyPagesCheck))throw Error('Local Delete requires the graphical isolated local-vault fixture');
@@ -100,6 +103,11 @@ let cancellationSink,cancellationStage=0,cancellationSentAt=0;
 const debuggerCheck=process.argv.includes('--native-debugger');
 const nativeProfile=process.argv.includes('--native-profile');let profileAt=0,settingsProbeSent=false,desktopProbeSent=false,actionsProbeSent=false,menuCheckFinishing=false,localAdmissionPending=false;
 const recordLoading=process.argv.includes('--record-loading');let loadingRecording=null,recordingDirectory=null,recordingCatalog=0;
+const steadyObservation=engineRuntime==='editor'&&!headless&&!localCheck&&!menuCheck&&!recordLoading&&!debuggerCheck&&!performanceOptions.policy.isolated;
+let profileNativeAt=null;
+function cadenceProfileDue(now,previous,nativeNow,previousNative,usesCadence){
+ return now-previous>=2000||(usesCadence&&Number.isFinite(nativeNow)&&Number.isFinite(previousNative)&&nativeNow-previousNative>=2000);
+}
 const {performance,monitorEventLoopDelay}=require('node:perf_hooks');
 const hostDelay=monitorEventLoopDelay({resolution:20});let hostDelayEnabled=false;
 let hostCpu=process.cpuUsage(),hostClock=performance.now(),hostLoop=performance.eventLoopUtilization();
@@ -399,7 +407,7 @@ async function finish(reason){
  if(actionBarterCheck)sourceFiles.push('tools/native-barter-peer.mjs');
  for(const directory of ['native_data','native_render'])for(const file of await fs.readdir(path.join(project,'systems',directory)))if(file.endsWith('.gd'))sourceFiles.push('systems/'+directory+'/'+file);
  sourceFiles.push('systems/character_lobby.gd','systems/native_character_lobby.gd');
- sourceFiles.push('tools/native-engine-runtime.cjs','tools/native-performance-runtime.cjs','client-runtime-lock.json','tools/ensure-client-runtime.ps1','tools/prepare-release-test.ps1','tools/prepare-release-pack.gd','native/engine_patches/animation-mixer-batch-position-rotation.patch','tools/perf140/render/godot-rd-thread-return.patch');
+ sourceFiles.push('tools/native-engine-runtime.cjs','tools/native-performance-runtime.cjs','client-runtime-lock.json','tools/ensure-client-runtime.ps1','tools/prepare-release-test.ps1','tools/prepare-release-pack.gd','native/engine_patches/animation-mixer-batch-position-rotation.patch','native/engine_patches/pack-runtime-mesh-storage-properties.patch','tools/perf140/render/godot-rd-thread-return.patch');
  report.compiledParticlesRequested=process.env.NWN_PARTICLE_KERNEL!=='gd';
  if(report.compiledParticlesRequested)sourceFiles.push('native/particle_kernel.cpp','native/particle_simulation.hpp','native/particle_kernel.gdextension','tools/build-particle-kernel.ps1','tools/ensure-particle-kernel.ps1','join-native.ps1','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json');
  if(report.compiledParticlesRequested)for(const file of await fs.readdir(path.join(project,'native')))if(file.endsWith('.hpp')&&!sourceFiles.includes('native/'+file))sourceFiles.push('native/'+file);
@@ -587,7 +595,13 @@ async function finish(reason){
   const send=value=>sendAtDispatch({connection:message.connection??lobby.connection,...value});
   report.lastCommandKind=message.kind;
   if(authenticated&&message.kind==='login-profile-input'){await loginProfiles.command(message);return;}
-  if(!authenticated){if(message.kind!=='hello'||message.token!==token)throw Error('Native session handshake failed');authenticated=true;if(startupFeatureManifest){startupFeatureManifest.nativeStartup=message.runtimeFeatures;startupFeatureManifest.verification=featureManifest.verifyNativeObservation(startupFeatureManifest,message.runtimeFeatures);await fs.writeFile(output.replace(/\.json$/,'.startup.json'),JSON.stringify(startupFeatureManifest,null,2)+'\n');if(startupFeatureManifest.verification.status==='rejected'){void finish('Native startup feature verification failed: '+startupFeatureManifest.verification.errors.join('; '));return;}}lobby.emit();report.startupSurface=localCheck?'browser':'main-menu';send({kind:localCheck?'browser-open':'main-menu-open'});return;}
+  if(!authenticated){
+   if(message.kind!=='hello'||message.token!==token)throw Error('Native session handshake failed');
+   authenticated=true;
+   report.rawWorldAreaReuse=message.runtimeFeatures?.raw_world_area_reuse===true;
+   if(startupFeatureManifest){startupFeatureManifest.nativeStartup=message.runtimeFeatures;startupFeatureManifest.verification=featureManifest.verifyNativeObservation(startupFeatureManifest,message.runtimeFeatures);await fs.writeFile(output.replace(/\.json$/,'.startup.json'),JSON.stringify(startupFeatureManifest,null,2)+'\n');if(startupFeatureManifest.verification.status==='rejected'){void finish('Native startup feature verification failed: '+startupFeatureManifest.verification.errors.join('; '));return;}}
+   lobby.emit();report.startupSurface=localCheck?'browser':'main-menu';send({kind:localCheck?'browser-open':'main-menu-open'});return;
+  }
   if(authenticated&&directHandoffHarness?.command(message,session,message.connection??lobby.connection))return;
   if(directHandoffCheck&&message.kind==='browser-observed'){report.browserReady=true;void directHandoffHarness.boot().catch(error=>directHandoffHarness.fail(error.message));return;}
   if(message.kind==='main-menu-observed'){
@@ -711,8 +725,9 @@ async function finish(reason){
    if(!ownsConnection(message)){rejectRetired(message);return;}
    report.lastObservation=message;setHostProfiling(Boolean(message.frame_profile?.enabled!==false&&message.frame_profile?.metrics));
    if(startupFeatureManifest){const scopeKey=[message.connection,message.generation,message.areaId].join('/');if(scopeKey!==featureWorldScope&&message.state?.ready&&message.generation===session?.areaGeneration&&message.areaId===session?.world?.areaId){featureWorldScope=scopeKey;startupFeatureManifest.worldSelections=featureManifest.worldSelection(message.state,{connection:message.connection,generation:message.generation,areaId:message.areaId});startupFeatureManifest.worldVerification=featureManifest.verifyWorldSelection(startupFeatureManifest,startupFeatureManifest.worldSelections);await fs.writeFile(output.replace(/\.json$/,'.startup.json'),JSON.stringify(startupFeatureManifest,null,2)+'\n');if(startupFeatureManifest.worldVerification.status==='rejected'){void finish('Native world feature verification failed: '+startupFeatureManifest.worldVerification.errors.join('; '));return;}}}
-   if(message.frame_profile?.enabled!==false&&message.frame_profile?.metrics&&Date.now()-profileAt>=2000){
-    profileAt=Date.now();const state=message.state??{},particles=state.native_particles??{};
+   const observationAt=Date.now();
+   if(message.frame_profile?.enabled!==false&&message.frame_profile?.metrics&&cadenceProfileDue(observationAt,profileAt,message.native_ticks_ms,profileNativeAt,steadyObservation)){
+    profileAt=observationAt;profileNativeAt=message.native_ticks_ms;const state=message.state??{},particles=state.native_particles??{};
     const sample={protocol_output:message.protocol_output,record_selection:message.record_selection,render_configuration:renderConfiguration.summary,particle_configuration:{presentation:renderConfiguration.summary.particle_presentation,lighting:renderConfiguration.summary.particle_lighting},protocol_host:hostMetrics(),particle_visibility:message.particle_visibility,ui_startup:message.ui_startup,at:profileAt,connection:message.connection,generation:message.generation,areaId:message.areaId,fps:message.fps,ready:state.ready,pending_batches:state.pending_batches,entities:state.entities,desired:state.desired,tiles:state.terrain?.rendered_tiles,particles:Object.fromEntries(['emitters','simulated','active','vertices','failed','culled_emitters','currently_culled'].map(key=>[key,particles[key]])),shared_particles:state.native_particle_stream??null,frame_profile:message.frame_profile};
     if(message.profile_presentation)sample.profile_presentation=message.profile_presentation;
     if(Number.isFinite(message.native_ticks_ms))sample.native_ticks_ms=message.native_ticks_ms;
@@ -845,9 +860,9 @@ async function finish(reason){
    if(actionQuickbarCheck&&report.quickbarDialogTimeline.length<64)report.quickbarDialogTimeline.push({at:Date.now(),direction:'result',kind:'reply',resynchronized:result.resynchronized??false});
    if(result.resynchronized)report.dialogResynchronizations=(report.dialogResynchronizations??0)+1;
   }
-  else if(message.kind==='inventory-open'){const view=Object.fromEntries(['ownerId','inventoryRole','windowSerial','inventoryReceipt'].filter(key=>message[key]!==undefined).map(key=>[key,message[key]]));await session.inventoryWindow({...scope,...view,open:true});await session.inventoryPanel({...scope,...view,panel:message.page});}
+  else if(message.kind==='inventory-open'){const view=Object.fromEntries(['ownerId','inventoryRole','windowSerial','inventoryReceipt'].filter(key=>message[key]!==undefined).map(key=>[key,message[key]]));await session.inventoryWindow({...scope,...view,open:true});await session.inventoryPanel({...scope,...view,panel:message.page,allBackpackPages:message.allBackpackPages===true});}
   else if(message.kind==='inventory-close')await session.inventoryWindow({...scope,...Object.fromEntries(['ownerId','inventoryRole','windowSerial','inventoryReceipt'].filter(key=>message[key]!==undefined).map(key=>[key,message[key]])),open:false});
-  else if(message.kind==='inventory-page')await session.inventoryPanel({...scope,...Object.fromEntries(['ownerId','inventoryRole','windowSerial','inventoryReceipt'].filter(key=>message[key]!==undefined).map(key=>[key,message[key]])),panel:message.page});
+  else if(message.kind==='inventory-page')await session.inventoryPanel({...scope,...Object.fromEntries(['ownerId','inventoryRole','windowSerial','inventoryReceipt'].filter(key=>message[key]!==undefined).map(key=>[key,message[key]])),panel:message.page,allBackpackPages:message.allBackpackPages===true});
   else if(message.kind==='inventory-container')await session.containerInput({...scope,actorId:session.world.localObjectId,targetId:message.targetId,operation:message.operation});
   else if(message.kind==='inventory-gold')await session.transferGold({...scope,actorId:message.actorId,targetId:message.targetId,amount:message.amount,position:message.position,placement:message.placement??false,x:message.x??0,y:message.y??0,barterSerial:message.barterSerial});
   else if(message.kind==='item-use')await session.interact({...scope,targetId:message.itemId,action:'object.use'});
@@ -869,6 +884,7 @@ async function finish(reason){
  report.engineRuntime=runtimeSelection;
  const runtimeUsesProject=engineRuntime!=='release';
  const executable=runtimeSelection.executable,nativeArgs=[...(runtimeUsesProject?['--path',project]:[]),'--rendering-method','forward_plus','--rendering-driver','vulkan',...(headless?['--headless','--max-fps','60']:scriptFloatingVisual?['--max-fps','60']:[]),'--log-file',path.join(project,'reports',run+'.engine.log'),...(runtimeUsesProject?['--script',directHandoffCheck?'res://tests/native_direct_handoff_world.gd':scriptFloatingVisual?'res://tests/native_ordinary_speech_visual_world.gd':scriptFloatingCheck?'res://tests/native_script_floating_world.gd':'res://native_session_world.gd']:[]),'--',...(engineRuntime==='release'?['--release-entry=res://native_session_world.gd']:[]),'--ticket='+ticket,'--report='+nativeReport,'--profile-control='+path.join(project,'reports',run+'.profile-control.json'),...(creationCheck?['--creation-class='+(arg('creation-class')??'fighter'),'--creation-package='+creationPackage]:[]),...(actionCheck?['--actions-check=true']:[]),...(actionNuiCheck?['--actions-nui-check=true']:[]),...(localCheck&&!directHandoffCheck&&!scriptFloatingOwned?['--settings-check=true']:[]),...((localCheck||actionCheck)?['--render-preferences='+path.join(project,'reports',run+'.settings.cfg'),'--menu-layout='+path.join(project,'reports',run+'.layout.cfg')]:[]),...(nativeProfile?['--profile=true']:[])];
+ if(steadyObservation)nativeArgs.push('--steady-observation-ms=2000');
  if(levelSourceCheck)nativeArgs.push('--level-source-check=true','--level-source-case='+levelSourceName);
  if(nativeOverheadClocks)nativeArgs.push('--native-overhead-clocks=true');
  if(scriptFloatingCheck)nativeArgs.push('--script-floating-check=true');
@@ -879,6 +895,7 @@ async function finish(reason){
  nativeArgs.push(...renderConfiguration.arguments);
  nativeArgs.unshift(...performanceOptions.engineArguments);
  nativeArgs.push(...performanceOptions.nativeArguments);
+ if(lightFadeView!==undefined)nativeArgs.push('--light-fade-view='+lightFadeView);
  if(process.argv.includes('--gui-art-gpu-snapshot'))nativeArgs.push('--gui-art-gpu-snapshot');
  nativeArgs.push(...loadingPipeline.arguments);
  report.nativeLoadingArguments=[...loadingPipeline.arguments];
@@ -987,9 +1004,10 @@ async function finish(reason){
    data.ui.partyInviteNotice=session.world.partyInviteNotice;
    data.ui.playerAttitudes=[...session.world.playerAttitudes];
    data.ui.partyListRevision=session.world.partyListRevision;
-   const changed=worldDeltas.plan({serial,generation,data,connection:lobby.connection});
+   const changed=worldDeltas.plan({serial,generation,data,connection:lobby.connection,reuseArea:report.rawWorldAreaReuse});
    if(!changed)return;
    report.rawWorldUpdates??={full:0,delta:0,objects:0,removed:0};report.rawWorldUpdates[changed.bridgeMode]++;report.rawWorldUpdates.objects+=changed.objects.length;report.rawWorldUpdates.removed+=changed.removedObjectIds.length;
+   if(changed.bridgeReuseArea)report.rawWorldUpdates.areasReused=(report.rawWorldUpdates.areasReused??0)+1;
    let frames=worldRadialCapture&&!worldRadialCapture.work?[...rawWorldFrames({serial,generation,data:changed,connection:lobby.connection})]:rawWorldFrames({serial,generation,data:changed,connection:lobby.connection});
    if(worldRadialCapture&&!worldRadialCapture.work)void worldRadialCapture.captureFrames(frames).catch(()=>finish('Owned first native snapshot capture failed'));
    if(creationApplyDiagnostic&&!creationApplyDiagnostic.snapshot){frames=[...frames];creationApplyDiagnostic.rawFrames(frames,{connection:lobby.connection,generation,serial,areaId:session.world.areaId});observeCreationCpu();}

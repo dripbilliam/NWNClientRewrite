@@ -231,6 +231,8 @@ func _ready() -> void:
 		configuration.instanceStreams=instance_streams
 		configuration.cxTargetMotion=cx_target_motion
 		configuration.typedEmitter=configuration.compactRecords and not OS.get_cmdline_user_args().has("--particle-emitter=mirrored") and (OS.get_cmdline_user_args().has("--particle-emitter=typed") or OS.get_environment("NWN_PARTICLE_EMITTER")!="mirrored")
+		if cx_required and not OS.get_cmdline_user_args().has("--particle-empty-clips=legacy"):
+			configuration.skipEmptyClipLookups=true
 		if native_pose_bound: configuration.poseId=get_parent().get_instance_id(); configuration.sourceId=source.get_instance_id()
 		var result: Dictionary=owner.call("dispatch",0,configuration,{})
 		if result.has("error"): fail(result.error); return

@@ -211,6 +211,8 @@ var initialized:=false
 var epoch:=-1
 var acknowledged:=-1
 var observed_at:=0
+var steady_observed_scope: Array=[]
+var steady_observed_at:=0
 var initial_controlled: Variant=null
 var entry_camera:=preload("res://systems/native_render/entry_camera.gd").new()
 var maximum_distance:=0.0
@@ -226,6 +228,12 @@ var pending_script_sounds: Array=[]
 var snapshot_metadata_objects: Array=[]
 var snapshot_metadata: Dictionary={}
 func native_clock_startup() -> void: pass
+func steady_observation_due(now: int, scope: Array, ready: bool) -> bool:
+	if ready and scope == steady_observed_scope and now - steady_observed_at < 2000:
+		return false
+	steady_observed_scope = scope
+	steady_observed_at = now
+	return true
 func observed_camera_snapshot() -> Dictionary:
 	if not is_instance_valid(camera): return {}
 	var value:=CameraObservation.pose(camera)
@@ -705,10 +713,17 @@ func _profile_tick() -> void:
 	creation_runtime_phase("frame:loading-after")
 	if not load_errors.is_empty(): report.area_loading_error=load_errors
 	if state.admission_ready and acknowledged!=epoch: acknowledged=epoch; send({"kind":"area-ready","generation":epoch,"areaId":world.area_id})
-	if Time.get_ticks_msec()-observed_at>500:
-		observed_at=Time.get_ticks_msec(); send({"kind":"observed","generation":epoch,"areaId":world.area_id,"state":world.snapshot(false),"ui_startup":gameplay_ui.startup_snapshot() if is_instance_valid(gameplay_ui) else {},"protocol_output":protocol_output.snapshot(),"record_selection":gameplay_ui.desktop.sheet.selection_timings.duplicate() if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) else {},"controlledDistance":maximum_distance,"fps":Engine.get_frames_per_second(),"frame_profile":frame_profile.snapshot() if is_instance_valid(frame_profile) else {}})
-		if interactive and str(args.get("capture-preview","false"))=="true" and DisplayServer.get_name()!="headless" and state.ready and state.pending_batches==0 and not preview_captured:
-			preview_captured=true; capture_preview.call_deferred()
+	var observation_now:=Time.get_ticks_msec()
+	if observation_now-observed_at>500:
+		observed_at=observation_now
+		var compact: bool=args.get("steady-observation-ms","")=="2000"
+		if not compact or steady_observation_due(observation_now,[world.get_instance_id(),epoch,world.area_id,state.ready,FrameProfile.enabled],state.ready):
+			send({"kind":"observed","generation":epoch,"areaId":world.area_id,"state":world.snapshot(false),"ui_startup":gameplay_ui.startup_snapshot() if is_instance_valid(gameplay_ui) else {},"protocol_output":protocol_output.snapshot(),"record_selection":gameplay_ui.desktop.sheet.selection_timings.duplicate() if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) else {},"controlledDistance":maximum_distance,"fps":Engine.get_frames_per_second(),"frame_profile":frame_profile.snapshot() if is_instance_valid(frame_profile) else {}})
+			if interactive and str(args.get("capture-preview","false"))=="true" and DisplayServer.get_name()!="headless" and state.ready and state.pending_batches==0 and not preview_captured:
+				preview_captured=true; capture_preview.call_deferred()
+		elif is_instance_valid(frame_profile) and FrameProfile.enabled:
+			# Keep the rolling summary up to date between full observations.
+			frame_profile.snapshot()
 	creation_runtime_phase("frame:end")
 func gameplay_presentation_allowed() -> bool:
 	# Readiness gates the first reveal. Later appearance/reference preparation

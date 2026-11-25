@@ -4,7 +4,11 @@ $ErrorActionPreference='Stop'
 $tracyPlanFile=[IO.Path]::GetFullPath($Plan)
 if((Get-FileHash -LiteralPath $tracyPlanFile).Hash.ToLowerInvariant()-ne$PlanSha){throw 'Private build plan changed'}
 $tracyPlan=Get-Content -LiteralPath $tracyPlanFile -Raw|ConvertFrom-Json
-if($tracyPlan.kind-ne'private-source-equivalent-d-tracy-build'){throw 'Unexpected private plan'}
+$tracyBinaryNames=@{
+ 'private-source-equivalent-d-tracy-build'='Godot_native_d_tracy_win64.exe'
+ 'private-animation-phase-tracy-build'='Godot_rig_phase_tracy_win64.exe'
+}
+if(-not$tracyPlan.kind-or-not$tracyBinaryNames.ContainsKey($tracyPlan.kind)){throw 'Unexpected private plan'}
 $tracyExpectedRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../.cache/native-tracy'))+[IO.Path]::DirectorySeparatorChar
 if(-not$tracyPlan.source.StartsWith($tracyExpectedRoot,[StringComparison]::OrdinalIgnoreCase)){throw 'Build source outside private Tracy workspace'}
 function Assert-TracyInputs{
@@ -38,7 +42,7 @@ try{
  Assert-TracyInputs
  $tracyBinary=Join-Path $tracyPlan.source 'bin/godot.windows.template_release.x86_64.exe'
  if(-not(Test-Path -LiteralPath $tracyBinary)){throw 'Compiler did not emit expected release engine'}
- $tracySavedBinary=Join-Path $tracyOut 'Godot_native_d_tracy_win64.exe';Copy-Item -LiteralPath $tracyBinary -Destination $tracySavedBinary
+ $tracySavedBinary=Join-Path $tracyOut $tracyBinaryNames[$tracyPlan.kind];Copy-Item -LiteralPath $tracyBinary -Destination $tracySavedBinary
  $tracyPdbs=@(Get-ChildItem -LiteralPath (Join-Path $tracyPlan.source 'bin') -Filter '*.pdb' -File)
  if($tracyPdbs.Count-lt1){throw 'Diagnostic engine lacks expected Windows symbols'}
  $tracyProof.symbols=@();foreach($tracyPdb in $tracyPdbs){$tracySavedPdb=Join-Path $tracyOut $tracyPdb.Name;Copy-Item -LiteralPath $tracyPdb.FullName -Destination $tracySavedPdb;$tracyProof.symbols+=@{file=$tracySavedPdb;sha256=(Get-FileHash -LiteralPath $tracySavedPdb).Hash.ToLowerInvariant();bytes=$tracyPdb.Length}}

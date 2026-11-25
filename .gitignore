@@ -21,6 +21,8 @@ captures/
 backups/
 runtime-logs/
 tooling/native/
+stock-render-tree/
+docs/
 *.gar
 .env
 .cache/

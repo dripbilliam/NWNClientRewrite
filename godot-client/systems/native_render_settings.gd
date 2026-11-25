@@ -8,7 +8,11 @@ signal fov_changed(value: float)
 signal creature_shadow_detail_changed(value: int)
 signal particle_collision_changed(value: bool)
 signal profiling_changed(value: bool)
+signal drive_group_cell_size_changed(value: int)
 signal creature_slots_changed(value: bool)
+signal inventory_backdrop_changed(opacity: float)
+signal inventory_click_pickup_changed(enabled: bool)
+signal combined_backpack_changed(enabled: bool)
 signal gore_changed(value: int)
 signal compact_scenery_changed(value: bool)
 signal entity_inspector_requested
@@ -27,6 +31,8 @@ var radial_toggles: Dictionary={}
 var radial_choices: Dictionary={}
 const TooltipPreferences=preload("res://systems/native_data/tooltip_preferences.gd")
 const CameraFov=preload("res://tools/native_parity/ui/camera_fov_projection.gd")
+enum InventoryBackground { INSTALLED, ADJUSTABLE, CLASSIC }
+const DEFAULT_INVENTORY_OPACITY:=70
 var fov_degrees:=CameraFov.DEFAULT_DEGREES
 var fov_control: HSlider
 var fov_value: Label
@@ -71,7 +77,15 @@ var gamma_value:=2.2
 var gamma_control: SpinBox
 var particle_collision_enabled:=true
 var profiling_enabled:=false
+var drive_group_cell_size:=0
+var drive_group_cell_size_select: OptionButton
 var creature_slots:=false
+var inventory_click_pickup:=false
+var combined_backpack:=false
+var inventory_background:=InventoryBackground.INSTALLED
+var inventory_opacity:=DEFAULT_INVENTORY_OPACITY
+var inventory_background_select: OptionButton
+var inventory_opacity_control: SpinBox
 var gore:=1
 var compact_scenery_enabled:=false
 var compact_scenery_toggle: CheckBox
@@ -114,8 +128,18 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	value=config.get_value("rendering","profiling_enabled",false)
 	profiling_enabled=profile_requested or (value if value is bool else false)
 	if profiling_override in ["true","false"]: profiling_enabled=profiling_override=="true"
+	value=config.get_value("rendering","drive_group_cell_size",0)
+	drive_group_cell_size=value if value is int and value in [0,5,10,20,40] else 0
 	value=config.get_value("interface","creature_slots",false)
 	creature_slots=value if value is bool else false
+	value=config.get_value("interface","inventory_click_pickup",false)
+	inventory_click_pickup=value if value is bool else false
+	value=config.get_value("enhancements","combined_backpack",false)
+	combined_backpack=value if value is bool else false
+	value=config.get_value("interface","inventory_background",InventoryBackground.INSTALLED)
+	inventory_background=value if value is int and value in InventoryBackground.values() else InventoryBackground.INSTALLED
+	value=config.get_value("interface","inventory_opacity",DEFAULT_INVENTORY_OPACITY)
+	inventory_opacity=clampi(value,0,100) if value is int else DEFAULT_INVENTORY_OPACITY
 	value=config.get_value("rendering","gore",1)
 	gore=value if value is int and value>=0 and value<=2 else 1
 	value=config.get_value("rendering","compact_scenery",false)
@@ -161,11 +185,52 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	gore_select=built.nodes.gore_select
 	compact_scenery_toggle=built.nodes.compact_scenery_toggle
 	profile_toggle=built.nodes.profile_toggle
+	drive_group_cell_size_select=built.nodes.drive_group_cell_size_select
+	drive_group_cell_size_select.select(drive_group_cell_size_select.get_item_index(drive_group_cell_size))
+	drive_group_cell_size_select.item_selected.connect(func(index):
+		var cell_size:=drive_group_cell_size_select.get_item_id(index)
+		if cell_size==drive_group_cell_size: return
+		drive_group_cell_size=cell_size
+		persist("drive_group_cell_size",cell_size)
+		drive_group_cell_size_changed.emit(cell_size))
 	entity_inspector_button=built.nodes.entity_inspector_button
 	built.nodes.login_profiles_button.pressed.connect(func():login_profiles_requested.emit())
 	built.nodes.chat_settings_button.pressed.connect(func():chat_settings_requested.emit())
 	performance=built.nodes.performance
 	creature_toggle=built.nodes.creature_toggle
+	var pickup_toggle: CheckBox=built.nodes.inventory_click_pickup_toggle
+	pickup_toggle.set_pressed_no_signal(inventory_click_pickup)
+	pickup_toggle.tooltip_text="Click an item to hold it. Click a backpack tab to switch pages while holding it. Right-click or Esc cancels."
+	pickup_toggle.toggled.connect(func(enabled: bool):
+		inventory_click_pickup=enabled
+		var saved:=ConfigFile.new()
+		saved.load(preference_path)
+		saved.set_value("interface","inventory_click_pickup",enabled)
+		saved.save(preference_path)
+		inventory_click_pickup_changed.emit(enabled))
+	var backpack_toggle: CheckBox=built.nodes.combined_backpack_toggle
+	backpack_toggle.set_pressed_no_signal(combined_backpack)
+	backpack_toggle.tooltip_text="Opening inventory shows all six backpack pages together, with collapsible equipment."
+	backpack_toggle.toggled.connect(func(enabled: bool):
+		combined_backpack=enabled
+		var saved:=ConfigFile.new()
+		saved.load(preference_path)
+		saved.set_value("enhancements","combined_backpack",enabled)
+		saved.save(preference_path)
+		combined_backpack_changed.emit(enabled))
+	inventory_background_select=built.nodes.inventory_background_select
+	inventory_background_select.select(inventory_background_select.get_item_index(inventory_background))
+	inventory_opacity_control=built.nodes.inventory_opacity_control
+	inventory_opacity_control.set_value_no_signal(inventory_opacity)
+	inventory_opacity_control.editable=inventory_background==InventoryBackground.ADJUSTABLE
+	inventory_background_select.item_selected.connect(func(index: int):
+		inventory_background=inventory_background_select.get_item_id(index)
+		inventory_opacity_control.editable=inventory_background==InventoryBackground.ADJUSTABLE
+		save_inventory_background())
+	inventory_opacity_control.value_changed.connect(func(amount: float):
+		if inventory_background!=InventoryBackground.ADJUSTABLE: return
+		inventory_opacity=roundi(amount)
+		save_inventory_background())
 	prework_content=built.nodes.prework_content
 	prework_scope=built.nodes.prework_scope
 	prework_workers=built.nodes.prework_workers
@@ -219,6 +284,20 @@ func set_fov_degrees(value: float) -> void:
 	fov_control.set_value_no_signal(value);fov_degrees=fov_control.value
 	fov_value.text="%d°"%roundi(fov_degrees)
 	persist("fov_degrees",fov_degrees);fov_changed.emit(fov_degrees)
+func inventory_backdrop_opacity() -> float:
+	match inventory_background:
+		InventoryBackground.ADJUSTABLE: return float(inventory_opacity)/100.0
+		InventoryBackground.CLASSIC: return 1.0
+		_: return 0.0
+
+func save_inventory_background() -> void:
+	var config:=ConfigFile.new()
+	config.load(preference_path)
+	config.set_value("interface","inventory_background",int(inventory_background))
+	config.set_value("interface","inventory_opacity",inventory_opacity)
+	config.save(preference_path)
+	inventory_backdrop_changed.emit(inventory_backdrop_opacity())
+
 func save_radial_preference(key: String,value: Variant) -> void:
 	if not radial_preferences.has(key) or typeof(value)!=typeof(radial_preferences[key]): return
 	if value is int and value not in [0,1,2]: return
@@ -311,6 +390,7 @@ func update_performance(profile: Dictionary) -> void:
 			["callback_world", "World updates"],
 			["world_motion", "  Actor movement"],
 			["world_poses", "  Actor poses"],
+			["drive_static_query_ms", "Prediction static collision lookup"],
 			["callback_particles", "Particles"],
 			["particle_frame_native_presentation_ms", "  Native particle preparation"],
 			["particle_native_simulation_ms", "    Simulation"],
@@ -352,5 +432,8 @@ func update_performance(profile: Dictionary) -> void:
 			["postdraw_render_frame_wall_ms", "Rendering frame interval"],
 		]:
 			if metrics.has(row[0]): lines.append("%s: %.2f ms (p95 %.2f)"%[row[1],float(metrics[row[0]].mean),float(metrics[row[0]].p95)])
+		var group_tests: Dictionary=metrics.get("count_drive_group_grid_tests",{})
+		if drive_group_cell_size>0 and float(group_tests.get("mean",0.0))>0.0:
+			lines.append("Prediction group grid tests: %.1f/frame (p95 %.0f)"%[float(group_tests.mean),float(group_tests.p95)])
 		lines.append("Full breakdown, memory and queue counts are in the session log.")
 	performance.text="\n".join(lines)

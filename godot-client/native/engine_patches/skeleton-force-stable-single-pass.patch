@@ -1,0 +1,20 @@
+diff --git a/scene/3d/skeleton_3d.cpp b/scene/3d/skeleton_3d.cpp
+--- a/scene/3d/skeleton_3d.cpp
++++ b/scene/3d/skeleton_3d.cpp
+@@ -1073,7 +1073,14 @@
+ void Skeleton3D::_force_update_all_bone_transforms() const {
++	const bool order_was_dirty = process_order_dirty;
+ 	_update_process_order();
+-	for (int i = 0; i < parentless_bones.size(); i++) {
+-		_force_update_bone_children_transforms(parentless_bones[i]);
++	if (!order_was_dirty && !parentless_bones.is_empty()) {
++		// The inner routine scans the whole nested set, regardless of its root argument.
++		_force_update_bone_children_transforms(parentless_bones[0]);
++	} else {
++		// An order rebuild can emit bone_list_changed and reenter this skeleton.
++		for (int i = 0; i < parentless_bones.size(); i++) {
++			_force_update_bone_children_transforms(parentless_bones[i]);
++		}
+ 	}
+ 	if (rest_dirty) {
+ 		rest_dirty = false;

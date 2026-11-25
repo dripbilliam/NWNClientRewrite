@@ -65,7 +65,7 @@ const sourceSha256={};async function pinSources(folder){for(const entry of await
 await pinSources(path.join(sourceProject,'systems'));await pinSources(path.join(sourceProject,'native'));for(const name of ['project.godot','native_live_world.gd','native_session_world.gd'])sourceSha256[name]=sha(await fs.readFile(path.join(sourceProject,name)));
 const driverSources={};for(const name of ['replay-native-loading.mjs','native-replay-diagnostics.mjs','native-replay-camera-evidence.mjs','native-loading-recording.mjs','native-loading-selection.mjs','native-movement-recording.mjs','perf140/driver/replay_control.mjs','perf140/driver/engine_read_acceptance.mjs','perf140/driver/terrain_height_acceptance.mjs','native_parity/performance/replay_client_capsule.mjs','native_parity/performance/replay_display.mjs','native-window-screen.ps1','native-render-configuration.cjs'])driverSources[name]=sha(await fs.readFile(path.join(project,'tools',name)));
 if(productionSelection)for(const name of ['native-production-selection.cjs','native-feature-manifest.cjs','native-client-flags.cjs','native-loading-pipeline.cjs','native-performance-runtime.cjs','native-engine-runtime.cjs'])driverSources[name]=sha(await fs.readFile(path.join(project,'tools',name)));
-const engineMode=arg('engine')??(productionSelection?'production-selection':clientCapsule?'client-capsule':'debug');if(!['debug','release','custom-pristine','custom-patched','custom-scene','custom-builtin','client-capsule','production-selection'].includes(engineMode)||Boolean(clientCapsule)!==['client-capsule','production-selection'].includes(engineMode)||Boolean(productionSelection)!==(engineMode==='production-selection'))throw Error('Invalid explicit engine mode');
+const engineMode=arg('engine')??(productionSelection?'production-selection':clientCapsule?'client-capsule':'debug');if(!['debug','release','custom-pristine','custom-patched','custom-scene','custom-builtin','custom-rig-phase','client-capsule','production-selection'].includes(engineMode)||Boolean(clientCapsule)!==['client-capsule','production-selection'].includes(engineMode)||Boolean(productionSelection)!==(engineMode==='production-selection'))throw Error('Invalid explicit engine mode');
 let engineFile=path.join(project,'.tools/Godot_v4.7.2-stable_win64.exe'),runtimeRoot=sourceProject,releasePackage=null,releaseReceipt=null;
 if(clientCapsule)engineFile=clientCapsule.engine;
 let customDescriptor=null;
@@ -78,6 +78,26 @@ if(engineMode==='custom-scene'||engineMode==='custom-builtin'){
  const module=JSON.parse(await fs.readFile(d.moduleManifest));for(const p of module.pins)if(sha(await fs.readFile(path.join(module.module,p.relative)))!==p.sha256)throw Error('Scene-read builtin module source differs');
  sceneEngineFiles={engineBuild:entry.buildReceipt,engineInvocation:entry.invocation,engineSource:d.sourceManifest,sceneModule:d.moduleManifest};for(let i=0;i<module.pins.length;i++)sceneEngineFiles['sceneModule'+i]=path.join(module.module,module.pins[i].relative);
  engineFile=entry.path;
+}else if(engineMode==='custom-rig-phase'){
+ const label=arg('custom-engine-descriptor');
+ if(!/^rig-phase-[a-z0-9-]+$/.test(label??''))throw Error('Private rig phase build label required');
+ const stage=path.join(project,'.cache/native-tracy/rig-phases',label);
+ if(sourceProject!==path.join(stage,'project'))throw Error('Private rig phase project required');
+ const planFile=path.join(stage,'build-plan.json'),overlayFile=path.join(stage,'manifest.json');
+ customDescriptor=path.join(stage,'build-output/receipt.json');
+ engineFile=path.join(stage,'build-output/Godot_rig_phase_tracy_win64.exe');
+ const build=JSON.parse(await fs.readFile(customDescriptor)),planBytes=await fs.readFile(planFile);
+ const plan=JSON.parse(planBytes),overlayBytes=await fs.readFile(overlayFile);
+ if(build.success!==true||build.exit!==0||build.normalRuntimeChanged!==false||build.plan!==planFile||
+  build.planSha256!==sha(planBytes)||build.binary?.file!==engineFile||
+  build.binary.sha256!==sha(await fs.readFile(engineFile))||plan.kind!=='private-animation-phase-tracy-build'||
+  plan.overlay?.file!==overlayFile||plan.overlay.sha256!==sha(overlayBytes))throw Error('Private rig phase build proof differs');
+ const overlay=JSON.parse(overlayBytes);
+ for(const relative of ['systems/model_rigs.gd','systems/native_render/actor_instance.gd']){
+  if(sourceSha256[path.normalize(relative)]!==overlay.outputs.find(row=>row.relative==='client/'+relative)?.sha256)
+   throw Error('Rig phase client overlay differs: '+relative);
+ }
+ sceneEngineFiles={rigPhaseBuildPlan:planFile,rigPhaseOverlay:overlayFile};
 }else if(engineMode.startsWith('custom-')){
  const label=arg('custom-engine-descriptor');if(!/^engine-rd-[a-z0-9-]+$/.test(label??''))throw Error('An explicit private engine A/B descriptor is required');
  customDescriptor=path.join(project,'.cache/native-140fps/render-agent',label,'engine-ab-descriptor.json');const descriptor=JSON.parse(await fs.readFile(customDescriptor)),state=engineMode.slice(7),entry=descriptor.engines?.[state];
@@ -383,7 +403,25 @@ const server=net.createServer(client=>{
 await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
 const ticket=path.join(temporary,'ticket.json');await fs.writeFile(ticket,JSON.stringify({host:'127.0.0.1',port:server.address().port,token,...(productionSelection?{featureSelection:productionSelection.featureSelection}:{})}),{flag:'wx'});
 const args=[...(engineMode==='release'?[]:['--path',sourceProject]),'--rendering-method',renderingMethod,'--rendering-driver','vulkan',...(process.argv.includes('--headless')?['--headless']:[]),...(arg('screen')?['--screen',arg('screen')]:[]),'--log-file',path.join(project,'reports',run+'.engine.log'),'--script','res://native_session_world.gd','--','--ticket='+ticket,'--report='+nativeReport,'--prepared-cache='+report.preparedCache,'--profile='+profiling,'--profile-control='+path.join(project,'reports',run+'.profile-control.json'),'--offline-replay=true'];
+const sourceReplayOptions=[
+ ['light-fade-view','lightFadeViewRequested',['script','native']],
+ ['base-scenery-admission','baseSceneryAdmissionRequested',['ordinary','timed']],
+ ['base-scenery-workers','baseSceneryWorkersRequested',['4','8']],
+ ['base-scenery-stream','baseSceneryStreamRequested',['waves','continuous']],
+ ['mesh-vertex-upload','meshVertexUploadRequested',['script','native']]
+];
+for(const [name,field,values] of sourceReplayOptions){
+ const value=arg(name);
+ if(value===undefined)continue;
+ if(clientCapsule||productionSelection||!values.includes(value))throw Error('Invalid ordinary source replay option: '+name);
+ report[field]=value;
+ args.push('--'+name+'='+value);
+}
 if(process.argv.includes('--publication-completion-diagnose'))args.push('--publication-completion-diagnose');
+report.guiArtGpuSnapshotRequested=process.argv.includes('--gui-art-gpu-snapshot');
+if(report.guiArtGpuSnapshotRequested)args.push('--gui-art-gpu-snapshot');
+report.guiArtCpuReadbackRequested=process.argv.includes('--gui-art-cpu-readback');
+if(report.guiArtCpuReadbackRequested)args.push('--gui-art-cpu-readback');
 if(productionPreferenceWorking)args.push('--render-preferences='+productionPreferenceWorking.render.file,'--menu-layout='+productionPreferenceWorking.layout.file);
 // A private opt-in probe may also disable small-packet buffering in the native
 // loopback peer. The native project must explicitly implement/read it back.

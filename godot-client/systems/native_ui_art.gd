@@ -30,7 +30,7 @@ func configure(source,cache_path: String) -> void:
 	catalog=source; ui_assets=source.ui_asset_owner() if source!=null and source.has_method("ui_asset_owner") else null
 	assets=Assets.new(); add_child(assets); assets.configure(source); assets.maximum_workers=2; assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	models=Icons.new()
-	models.keep_model_textures_on_gpu=OS.get_cmdline_user_args().has("--gui-art-gpu-snapshot")
+	models.keep_model_textures_on_gpu=not OS.get_cmdline_user_args().has("--gui-art-cpu-readback")
 	add_child(models); models.configure(source,cache_path); models.completed.connect(model_ready)
 func unbind(target: Object,property: String="texture") -> void:
 	if is_instance_valid(target): retire_binding(str(target.get_instance_id())+":"+property)

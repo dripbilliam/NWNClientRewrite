@@ -45,6 +45,8 @@ var maximum_pending := 128
 var high_priority:=false
 var ancestor_preparation_enabled:=Ancestors.configured_enabled() # --ancestor-preparation=false retains the measured reference.
 var mesh_preparation_enabled:=MeshPreparation.configured_enabled() # Immutable after requests start.
+var compiled_mesh_vertices:=not OS.get_cmdline_user_args().has("--mesh-vertex-upload=script") \
+	and ClassDB.class_has_method(&"NwnParticleKernel",&"mesh_vertex_upload")
 var shared_animation_preparation_enabled:=SharedAnimation.configured_enabled()
 var raster_upload_preparation_enabled:=RasterUpload.configured_enabled()
 var worker_texture_creation_enabled:=RasterUpload.configured_worker_texture_creation()
@@ -627,7 +629,8 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 			var parser := Raster.new(); result.value = parser.parse(bytes,type); result.error = parser.failure; timings.raster_conversion=parser.stats.duplicate()
 	timings.decode_ms = (Time.get_ticks_usec()-began)/1000.0
 	if mesh_preparation_enabled and decoder.begins_with("mdl-") and str(result.error).is_empty():
-		var prepared:=MeshPreparation.model(result.value,skin_preparation_enabled); timings.mesh_preparation=prepared
+		var prepared:=MeshPreparation.model(result.value,skin_preparation_enabled,compiled_mesh_vertices and decoder=="mdl-static-render-v1")
+		timings.mesh_preparation=prepared
 		if not str(prepared.error).is_empty(): result.error=prepared.error
 	if cache_ok and decoder != "bytes" and str(result.error).is_empty():
 		began = Time.get_ticks_usec()

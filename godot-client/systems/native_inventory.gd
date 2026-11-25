@@ -56,6 +56,8 @@ var closed:=false
 var notice_text:=""
 var detailed_timings:=false
 var timing_rows: Array=[]
+var waiting_icon_signature:=""
+var waiting_icon_keys: Dictionary={}
 var data_received_us:=0
 var data_received_wall_ms:=0.0
 var stats:={"views":0,"commands":0,"icons_bound":0,"rejected_results":0,"stale_input":0,"errors":[],"native_only":true}
@@ -76,7 +78,9 @@ func configure(parent: Control,catalog,cache_path: String,text,layout_storage: S
 	if retained_item_icons:
 		icons.prepared.connect(scene_icon_ready)
 		ui.configure_scene_icons(icons)
-	else: icons.completed.connect(icon_ready)
+	else:
+		icons.keep_item_textures_on_gpu=true
+		icons.completed.connect(icon_ready)
 func displayed_owner() -> int:return controlled_id if display_owner_id<0 else display_owner_id
 func set_displayed_owner(id: int,serial: int,receipt: int) -> void:
 	window_serial=serial;window_receipt=receipt
@@ -225,20 +229,54 @@ func refresh() -> void:
 	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(owner_id): return
 	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
 	var actor: Dictionary = objects[owner_id]
+	var drag: Dictionary=ui.active_item_drag()
+	var dragged_id:=int(drag.get("entryId",-1))
+	var previous_drag: Dictionary={}
+	var store_open: bool=store.get("open",false)
+	if dragged_id>=0 and int(drag.get("viewId",-1))==view_serial and not pending.has(dragged_id):
+		var old_store: Dictionary=ui.state.get("store",{})
+		if store_open==bool(old_store.get("open",false)) and (not store_open or store.get("generation")==old_store.get("generation")):
+			previous_drag=views.get(dragged_id,{})
+	var drag_entry:=-1
+	var drag_disclosed:=false
+	var carried_drag_row: Dictionary={}
 	var sources: Array = []
 	var bases: Array[Dictionary] = []
 	for channel in ["I","R","C","M"]:
 		for location in inventories.get(channel,{}).get("entries",[]):
 			# As in the stock repository, page selection gates presentation.
 			# The replicated item remains in objects for command validation.
-			if channel=="R" and floori(float(location.get("y",0))/6.0)!=page: continue
-			if channel=="C" and floori(float(location.get("y",0))/5.0)!=container_page: continue
-			var id:=int(location.id); var object: Dictionary=objects.get(id,{})
+			var off_page: bool=channel=="R" and floori(float(location.get("y",0))/6.0)!=page or channel=="C" and floori(float(location.get("y",0))/5.0)!=container_page
+			var id:=int(location.id)
+			if id==dragged_id: drag_disclosed=true
+			if off_page and (id!=dragged_id or previous_drag.is_empty() or store_open): continue
+			var object: Dictionary=objects.get(id,{})
 			if object.get("replicationRemoved",false) or not object.get("item") is Dictionary: continue
 			var item: Dictionary=object.item; var base:=IconPlan.row(text_owner.tables,"baseitems",int(item.get("baseItem",-1)))
 			if base.is_empty(): continue
+			if id==dragged_id and not previous_drag.is_empty():
+				var old_row: Dictionary=previous_drag.row
+				var old_object: Dictionary=previous_drag.object
+				var same_channel: bool=str(old_row.channel)==channel
+				if channel=="C": same_channel=same_channel and int(ui.state.get("container",{}).get("serial",-1))==container_serial
+				var same_cell: bool=int(old_row.get("x",0))==int(location.get("x",0)) and int(old_row.get("y",0))==int(location.get("y",0)) and int(old_row.get("slot",0))==int(location.get("slot",0))
+				var same_item: bool=item==old_object.get("item") and object.get("inventoryLocation")==old_object.get("inventoryLocation")
+				if same_channel and same_cell and same_item:
+					drag_entry=id
+					if off_page: carried_drag_row=old_row
+			if off_page: continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
 			bases.append(base)
+	# The transport clears the repository rows before asking for a page.
+	# Only an already-held backpack item can use its unchanged canonical
+	# location while that row is undisclosed.
+	if not drag_disclosed and not previous_drag.is_empty() and drag.get("acrossRepositoryPages",false) and not store_open:
+		var old_row: Dictionary=previous_drag.row
+		var location: Variant=previous_drag.object.get("inventoryLocation")
+		if old_row.channel=="R" and location is Dictionary and location.get("channel")=="R" and int(location.get("ownerId",-1))==owner_id and not valid_item(drag).is_empty():
+			drag_entry=dragged_id
+			carried_drag_row=old_row
+	if not drag.is_empty() and drag_entry<0: ui.cancel_item_drag()
 	var sources_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	var appearance: Dictionary = actor.get("appearance", {})
 	var gender := int(appearance.get("gender", 0))
@@ -256,9 +294,18 @@ func refresh() -> void:
 	var next := Cache.digest(var_to_bytes([generation, controlled_id, owner_id, page, container_page, container_serial, sources,
 		actor.get("inventoryStats", {}), actor.get("playerState", {}).get("combat", {}), actor.get("playerState", {}).get("abilities", {}),
 		pending.keys(), store, store_page_count, scene_source, text_owner.revision, text_owner.named_ready, _text_context_key(),
-		gender, title_source, container_id, container_title, container_page_count]))
+		gender, title_source, container_id, container_title, container_page_count, carried_drag_row.get("entryId",-1)]))
 	var signature_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
+	# Keep the current complete view while its replacement is waiting on known
+	# jobs. Unsubmitted work must retry as queue capacity becomes available.
+	if next==waiting_icon_signature:
+		for key in waiting_icon_keys:
+			if icons.pending.has(key):
+				if detailed_timings: stats.icon_wait_skips=int(stats.get("icon_wait_skips",0))+1
+				return
+	waiting_icon_signature=""
+	waiting_icon_keys.clear()
 	var rows: Array = []
 	for index in sources.size():
 		var source: Array = sources[index]
@@ -272,26 +319,34 @@ func refresh() -> void:
 	var rows_us := sources_ready_us - refresh_started + rows_built_us - signature_ready_us
 	var ready_icons: Dictionary={}
 	var waiting:=false
+	var retry_wait:=false
 	var attempted_icons:=0
 	for row in rows:
 		attempted_icons+=1
 		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,gender)
 		if key.is_empty():
 			if ui.native_icon_gate:
-				if icons.last_request_error=="Native asset queue is full": waiting=true
+				if icons.last_request_error=="Native asset queue is full":
+					waiting=true
+					retry_wait=true
 				elif not icons.last_request_error.is_empty(): notice_text="Item icon unavailable: "+icons.last_request_error; ui.notice.text=notice_text
 			continue
 		ready_icons[int(row.entryId)]=key
-		if not (icons.bundles.has(key) if retained_item_icons else icons.textures.has(key)) and not icons.failed.has(key) and not icon_failures.has(key): waiting=true
+		if not (icons.bundles.has(key) if retained_item_icons else icons.textures.has(key)) and not icons.failed.has(key) and not icon_failures.has(key):
+			waiting=true
+			if icons.pending.has(key): waiting_icon_keys[key]=true
+			else: retry_wait=true
 	var requests_done_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if waiting:
+		if not retry_wait and not waiting_icon_keys.is_empty(): waiting_icon_signature=next
 		if detailed_timings and timing_rows.size()<512:
 			timing_rows.append({"phase":"native-icon-wait","mono_us":requests_done_us,"page":page,"view":view_serial,"rows":rows.size(),"attempted_icons":attempted_icons,"ready_icons":ready_icons.size(),"asset_pending":icons.assets.pending.size(),"asset_running":icons.assets.running.size(),"icon_pending":icons.pending.size(),"rows_us":rows_us,"signature_us":signature_ready_us-sources_ready_us,"requests_us":requests_done_us-rows_built_us,"refresh_us":requests_done_us-refresh_started})
 		return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
+	if not carried_drag_row.is_empty(): views[drag_entry]=previous_drag
 	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
-	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(title_source,owner_id),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container_title,controlled_id),"page":container_page,"pageCount":container_page_count}})
+	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(title_source,owner_id),"page":page,"items":rows,"dragEntry":drag_entry,"carriedDragRow":carried_drag_row,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container_title,controlled_id),"page":container_page,"pageCount":container_page_count}})
 	if detailed_timings and timing_rows.size()<512:
 		var committed:=Time.get_ticks_usec()
 		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_us,"signature_us":signature_ready_us-sources_ready_us,"requests_us":requests_done_us-rows_built_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":owner_id,"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
@@ -346,6 +401,9 @@ func input_request(message: Dictionary) -> void:
 			item_context.cancel(); stack_dialog.cancel(); views.clear(); pending.clear(); icon_bindings.clear(); send_command({"kind":"inventory-close"})
 		"inventory-page":
 			if int(message.viewId)!=view_serial or int(message.page)<0 or int(message.page)>5: stats.stale_input+=1; return
+			var drag: Dictionary=ui.active_item_drag()
+			if not drag.is_empty() and int(message.page)!=page:
+				drag.acrossRepositoryPages=true
 			page=int(message.page); signature=""; send_command({"kind":"inventory-page","page":page})
 		"inventory-container":
 			if int(message.viewId)!=view_serial or str(message.operation) not in ["close","previous","next"]: stats.stale_input+=1; return

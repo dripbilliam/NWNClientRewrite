@@ -2,7 +2,7 @@ extends RefCounted
 # Explicit input-polling backend only. The existing Focus owner/history solver
 # retain membership policy, native selection/fades and renderer publication.
 const CanonicalWriter=preload("res://systems/native_render/model_point_light.gd")
-const CANONICAL_WRITER_SHA:="8053a0391cc31dc59b8cf70d1e4c039a9dca5c2ab3b5e7a54841bd7ae40c2b69"
+const CANONICAL_WRITER_SHA:="554f168dac6f090e64587e400ba9b2842d9da5d28b6af1b7f9dccc82e36eb622"
 const REVISION:="production-light-input-selection-v1"
 const NATIVE_CLASS:=&"NwnBuiltinLightInputRegistry"
 const FLAG:="--light-input-registry="

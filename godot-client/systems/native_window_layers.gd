@@ -26,12 +26,14 @@ func configure(parent: Control) -> void:
 	host.child_exiting_tree.connect(removed)
 	for child in host.get_children(): added(child)
 func added(node: Node) -> void:
-	if closed or not node is Control or roots.has(node.get_instance_id()): return
+	# Godot parents drag previews to the desktop as top-level controls.
+	# Their canvas order is independent of the ordinary window stack.
+	if closed or not node is Control or node.top_level or roots.has(node.get_instance_id()): return
 	var id:=node.get_instance_id(); var material:=ShaderMaterial.new(); material.shader=shader
 	roots[id]={"owner":weakref(node),"material":material,"signature":[],"supported":node.material==null}
 	watch(node,id,true)
 func watch(node: Node,id: int,top: bool=false) -> void:
-	if node is CanvasLayer or node is SubViewport: return
+	if node is CanvasLayer or node is SubViewport or node is CanvasItem and node.top_level: return
 	var key:=node.get_instance_id()
 	if original.has(key): return
 	var callback:=descendant_added.bind(id)

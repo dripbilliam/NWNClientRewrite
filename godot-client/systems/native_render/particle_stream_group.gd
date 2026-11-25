@@ -60,7 +60,8 @@ func configure(root_node: Node3D, use_cx_records: bool=false) -> bool:
 	if result.has("error"): failure=str(result.error); close(); return false
 	var coarse_enabled: bool=OS.get_cmdline_user_args().has("--particle-coarse-timing")
 	var sparse_enabled: bool=coarse_enabled or OS.get_cmdline_user_args().has("--particle-sparse-timing")
-	var setup_enabled: bool=OS.get_cmdline_user_args().has("--particle-setup-boundary=bound")
+	# CX remembers static clocks at registration. Dynamic clocks still validate live.
+	var setup_enabled: bool=cx_records or OS.get_cmdline_user_args().has("--particle-setup-boundary=bound")
 	if sparse_enabled or setup_enabled:
 		var sampled: Dictionary=native.call("dispatch",15,{"enabled":sparse_enabled,"stride":120,"min_members":1800,"coarse_phases":coarse_enabled,"setup_boundary":setup_enabled,"reset":true})
 		if sampled.has("error"):failure=str(sampled.error);close();return false

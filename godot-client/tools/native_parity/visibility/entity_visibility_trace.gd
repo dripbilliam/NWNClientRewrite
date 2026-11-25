@@ -51,8 +51,10 @@ static func box(value: AABB) -> Dictionary:
 	return {"position":[value.position.x,value.position.y,value.position.z],"size":[value.size.x,value.size.y,value.size.z]}
 static func error_record(value: Variant) -> Dictionary:
 	if not value is Dictionary: return {"available":false,"reason":"no_record"}
+	var details: Variant=value.get("error")
+	if not details is Dictionary: details={}
 	var result:={"available":true}
-	for key in ["reason","model","key"]: result[key]=text(value.get(key))
+	for key in ["reason","model","key"]: result[key]=text(value.get(key,details.get(key)))
 	return result
 static func material_view(value: Material) -> Dictionary:
 	if value==null: return {"available":false,"reason":"no_material"}

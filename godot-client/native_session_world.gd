@@ -42,6 +42,7 @@ var loading_announced:=false
 var raw_world: Dictionary={}
 var raw_serial:=-1
 var accepted_raw_serial:=-1
+var accepted_raw_area: Dictionary={}
 var cancelled_connection:=-1
 var return_to_browser:=false
 var return_to_main_menu:=false
@@ -81,6 +82,7 @@ func movement_window_probe_snapshot() -> Dictionary:
 	return {"position":[position.x,position.y,position.z],"render":[render.x,render.y,render.z],"orientation":[orientation.x,orientation.y,orientation.z],"probes":int(counters.probes),"initial_clears":int(counters.initial_clears),"reused_clears":int(counters.reused_clears),"fallback_clears":int(counters.fallback_clears),"collections":int(counters.collections),"height_queries":int(world.surface.stats.queries) if is_instance_valid(world.surface) else -1}
 func runtime_features_snapshot() -> Dictionary:
 	var value: Dictionary=super.runtime_features_snapshot()
+	value.raw_world_area_reuse=true
 	# Report saved-setting owners separately from replay/command-line overrides.
 	# This runs only at protocol/report boundaries, never as a per-frame scan.
 	if is_instance_valid(render_settings):
@@ -98,6 +100,11 @@ func native_clock_prefix()->void:
 	if native_clock_runtime!=null:native_clock_runtime.prefix(Engine.get_process_frames())
 func native_material_policy_ready() -> void:
 	if is_instance_valid(material_prewarm):material_prewarm.configure_policy(MaterialPrewarm.policy_from_pool(render_pool))
+	if is_instance_valid(render_settings):set_drive_group_cell_size(render_settings.drive_group_cell_size)
+func set_drive_group_cell_size(value: int) -> void:
+	if not is_instance_valid(world) or world.closed or world.retiring:return
+	var drive=world.drive_collision
+	if is_instance_valid(drive) and drive.has_method("set_static_group_cell_size"):drive.set_static_group_cell_size(value)
 func snapshot_preparation_scope(snapshot: Dictionary) -> Array:
 	return [int(snapshot.get("connection",session_connection)),int(snapshot.generation),int(snapshot.serial),int(snapshot.data.get("area",{}).get("id",-1))]
 func snapshot_preparation_choice() -> String:
@@ -305,10 +312,17 @@ func run() -> void:
 	render_settings.creature_shadow_detail_changed.connect(func(value):
 		if native_visibility_runtime!=null:native_visibility_runtime.shadow_detail_changed(value))
 	render_settings.particle_collision_changed.connect(particle_visibility.set_collision_enabled)
+	render_settings.drive_group_cell_size_changed.connect(set_drive_group_cell_size)
 	host.set_meta("native_gore",render_settings.gore)
 	render_settings.gore_changed.connect(func(value):host.set_meta("native_gore",value))
 	render_settings.creature_slots_changed.connect(func(on):
 		if is_instance_valid(gameplay_ui): gameplay_ui.inventory.ui.creature_slots=on; gameplay_ui.inventory.signature="")
+	render_settings.inventory_backdrop_changed.connect(func(opacity):
+		if is_instance_valid(gameplay_ui): gameplay_ui.set_inventory_backdrop_opacity(opacity))
+	render_settings.inventory_click_pickup_changed.connect(func(enabled):
+		if is_instance_valid(gameplay_ui): gameplay_ui.inventory.ui.click_pickup=enabled)
+	render_settings.combined_backpack_changed.connect(func(enabled):
+		if is_instance_valid(gameplay_ui): gameplay_ui.inventory.ui.combined_backpack=enabled)
 	render_settings.radial_preferences_changed.connect(func(value):
 		if is_instance_valid(gameplay_ui): gameplay_ui.set_radial_preferences(value))
 	particle_visibility.set_enabled(render_settings.particles_enabled)
@@ -659,6 +673,11 @@ func receive_profiled(message: Dictionary) -> void:
 			if serial<=raw_serial or count<0 or count>65536 or not message.get("data") is Dictionary: fail("Invalid native raw-world header"); return
 			var mode:=str(message.data.get("bridgeMode","full"))
 			if mode not in ["full","delta"] or mode=="delta" and (accepted_raw_serial<0 or epoch<0 or int(message.data.get("bridgeBaseSerial",-2))!=accepted_raw_serial or int(message.generation)!=epoch): fail("Native raw-world delta has no accepted base"); return
+			if message.data.has("bridgeReuseArea"):
+				var reuse: Variant=message.data.bridgeReuseArea
+				if mode!="delta" or not reuse is bool or not reuse or message.data.has("area") or accepted_raw_area.is_empty():fail("Native raw-world area reference has no accepted base");return
+				message.data.erase("bridgeReuseArea")
+				message.data.area=accepted_raw_area
 			cancel_snapshot_preparation(false)
 			raw_serial=serial; raw_world={"serial":serial,"connection":session_connection,"generation":int(message.generation),"count":count,"data":message.data,"trusted_entry_wire":snapshot_wire_depth>0}; raw_world.data.objects=[]
 			if snapshot_preparation_enabled and snapshot_wire_depth>0 and initialized and mode=="full" and int(message.generation)>=epoch:
@@ -975,6 +994,7 @@ func reset_session() -> void:
 	initial_controlled=null; maximum_distance=0.0; observed_at=0; presentation_stats={}; stats_at=0; walkmesh_registered=false
 	raw_world={}
 	accepted_raw_serial=-1
+	accepted_raw_area={}
 	label.text="Native renderer · choose a server or character"
 func application_exit_policy() -> bool: return true
 func shutdown() -> void:
@@ -1154,7 +1174,9 @@ func entry_snapshot_tail_next(state: Dictionary,tail: Dictionary,phase: String) 
 func entry_snapshot_tail_unit(state: Dictionary,tail: Dictionary) -> Dictionary:
 	var snapshot: Dictionary=state.snapshot;var phase:=str(tail.phase)
 	match phase:
-		"accept":accepted_raw_serial=raw_serial;entry_snapshot_tail_next(state,tail,"offline_lobby")
+		"accept":
+			accept_raw_snapshot_base(snapshot)
+			entry_snapshot_tail_next(state,tail,"offline_lobby")
 		"offline_lobby":
 			if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby):character_lobby.panel.hide()
 			entry_snapshot_tail_next(state,tail,"options")
@@ -1203,6 +1225,9 @@ func entry_snapshot_tail_unit(state: Dictionary,tail: Dictionary) -> Dictionary:
 			entry_snapshot_tail_next(state,tail,"creature_slots")
 		"creature_slots":
 			gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+			gameplay_ui.inventory.ui.click_pickup=render_settings.inventory_click_pickup
+			gameplay_ui.inventory.ui.combined_backpack=render_settings.combined_backpack
+			gameplay_ui.set_inventory_backdrop_opacity(render_settings.inventory_backdrop_opacity())
 			entry_snapshot_tail_next(state,tail,"radial")
 		"radial":
 			if is_instance_valid(gameplay_ui):gameplay_ui.set_radial_preferences(render_settings.radial_preferences)
@@ -1257,9 +1282,14 @@ func apply_raw_snapshot(snapshot: Dictionary) -> void:
 	FrameProfile.finish("entry_entity_api_commit_ms",entry_began)
 	creation_trace("raw-world:entity-observer-after")
 	finish_raw_snapshot_tail(snapshot,context)
+func accept_raw_snapshot_base(snapshot: Dictionary) -> void:
+	accepted_raw_serial=int(snapshot.serial)
+	# Consumers read the decoded area as immutable snapshot input.
+	accepted_raw_area=snapshot.data.get("area",{})
+
 func finish_raw_snapshot_tail(snapshot: Dictionary,context: Dictionary) -> void:
 	var entry_began:=FrameProfile.begin()
-	accepted_raw_serial=raw_serial
+	accept_raw_snapshot_base(snapshot)
 	if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby): character_lobby.panel.hide()
 	if is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options):
 		entry_began=FrameProfile.begin()
@@ -1272,6 +1302,9 @@ func finish_raw_snapshot_tail(snapshot: Dictionary,context: Dictionary) -> void:
 		creation_trace("raw-world:menu-configure-after")
 		gameplay_ui.options_requested.connect(open_game_options)
 		gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+		gameplay_ui.inventory.ui.click_pickup=render_settings.inventory_click_pickup
+		gameplay_ui.inventory.ui.combined_backpack=render_settings.combined_backpack
+		gameplay_ui.set_inventory_backdrop_opacity(render_settings.inventory_backdrop_opacity())
 		FrameProfile.finish("entry_options_configure_ms",entry_began)
 	if not raw_snapshot_current(snapshot,context):return
 	entry_began=FrameProfile.begin()

@@ -1,6 +1,6 @@
 extends Node
 # Precipitation uses the static layer. Sun fits can add a separate layer for
-# moving cast shadows. The two layers share a scenario and fit matrices.
+# moving cast shadows. Each caster lane has its own scenario.
 const BaseScenery=preload("res://systems/native_render/base_world_scenery.gd")
 const Profile=preload("res://systems/native_render/frame_profile.gd")
 const ActorShadowMesh=preload("res://systems/native_render/actor_shadow_mesh.gd")
@@ -52,6 +52,7 @@ class MovingCaster extends RefCounted:
 
 var world: Node3D
 var caster_world: World3D
+var moving_caster_world: World3D
 var radii: PackedFloat32Array
 var slacks: PackedFloat32Array
 var shadows_only: bool
@@ -160,10 +161,17 @@ func _observe_terrain() -> void:
 	if is_instance_valid(terrain): terrain.progress.connect(terrain_signal)
 	invalidated=true
 
+func _caster_world_for_layer(layer: int) -> World3D:
+	if layer==MOVING_LAYER:
+		if moving_caster_world==null: moving_caster_world=World3D.new()
+		return moving_caster_world
+	if caster_world==null: caster_world=World3D.new()
+	return caster_world
+
 func _add_view(radius: float,layer: int) -> void:
 	var viewport:=SubViewport.new()
 	viewport.size=Vector2i(MAP_SIZE,MAP_SIZE)
-	viewport.world_3d=caster_world
+	viewport.world_3d=_caster_world_for_layer(layer)
 	viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED
 	RenderingServer.viewport_set_disable_2d(viewport.get_viewport_rid(),true)
 	viewport.positional_shadow_atlas_size=0
@@ -410,7 +418,6 @@ func _sync_moving_row(row: MovingCaster,skeletons: Dictionary) -> bool:
 	var new_proxy:=row.geometry!=geometry
 	if new_proxy:
 		_free_moving_proxy(row)
-		if caster_world==null: caster_world=World3D.new()
 		if moving_views.is_empty():
 			for radius in radii: _add_view(radius,MOVING_LAYER)
 		row.rid=_create_proxy(geometry,MOVING_LAYER)
@@ -499,7 +506,6 @@ func _collect(node: GeometryInstance3D,bounds: AABB,current: Dictionary) -> bool
 		geometry=node.mesh
 	elif node is MultiMeshInstance3D: geometry=node.multimesh
 	if geometry==null: return false
-	if caster_world==null: caster_world=World3D.new()
 	if viewports.is_empty():
 		for radius in radii: _add_view(radius,STATIC_LAYER)
 	var id:=node.get_instance_id()
@@ -516,7 +522,7 @@ func _collect(node: GeometryInstance3D,bounds: AABB,current: Dictionary) -> bool
 	return _sync_proxy(row,node,transform) or replaced
 
 func _create_proxy(geometry: Resource,layer: int) -> RID:
-	var rid:=RenderingServer.instance_create2(geometry.get_rid(),caster_world.scenario)
+	var rid:=RenderingServer.instance_create2(geometry.get_rid(),_caster_world_for_layer(layer).scenario)
 	RenderingServer.instance_set_layer_mask(rid,layer)
 	RenderingServer.instance_geometry_set_cast_shadows_setting(rid,RenderingServer.SHADOW_CASTING_SETTING_OFF)
 	return rid

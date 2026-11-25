@@ -1,6 +1,7 @@
 // Native visual arithmetic only. Original coordinates are Z-up, quaternions WXYZ.
 // No network, file IO, engine scene mutation or JS. RefCounted native owners
-// retain private simulation/controller storage, never borrowed scene pointers.
+// retain private simulation/controller storage. Scene handles are optional and
+// expire at the engine lifetime boundary.
 // ABI sizes are checked against the pinned engine dump by the build script.
 #include "gdextension_interface.h"
 #include <algorithm>
@@ -160,6 +161,7 @@ GDExtensionInterfaceObjectSetInstance set_instance;
 #include "fixed_terrain_support.hpp"
 #include "animation_keys.hpp"
 #include "raster_conversion.hpp"
+#include "mesh_vertex_upload.hpp"
 #include "model_control.hpp"
 #include "visual_selection.hpp"
 #include "model_plan.hpp"
@@ -174,7 +176,8 @@ bool bind_pose_api(){ {Name node("Node3D"),global("get_global_transform"),ortho(
 void initialize(void*,GDExtensionInitializationLevel level){
  if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;
  if(!bind_pose_api()||!bind_scene_model_api()||!scene_index::bind())return;
- particle_scene_boundary::bind();particle_clock_binding::bind(particle_scene_boundary::direct_address);resident::hot_parameters::bind();resident::resident_text::bind();resident::empty_clips::bind();
+ particle_scene_boundary::bind();particle_pose_handle::bind(particle_scene_boundary::direct_address);particle_clock_binding::bind(particle_scene_boundary::direct_address);resident::hot_parameters::bind();resident::resident_text::bind();resident::empty_clips::bind();
+ resident::compact_particle::bind_preparation_reuse();
  Name name("NwnParticleKernel"),base("RefCounted"),method("vertices"),empty(""),arg0("emitter"),arg1("input"),arg2("atlas_prepared");
  alignas(8) uint8_t hint[8];string_new(hint,"");
  GDExtensionClassCreationInfo6 info{};info.is_abstract=true;info.is_exposed=true;info.is_runtime=true;info.free_instance_func=free_instance;register_class(library,name.data,base.data,&info);
@@ -196,6 +199,7 @@ void initialize(void*,GDExtensionInitializationLevel level){
  fixed_terrain_support::register_owner(property);
  animation_keys::register_validation(name,property);
  raster_conversion::register_conversion(name,property);
+ mesh_vertex_upload::register_method_info(name,property);
  model_control::register_methods(name,property);
  model_plan::register_method_info(name,property);
  model_pose_storage::register_owner(property);
@@ -209,7 +213,7 @@ void initialize(void*,GDExtensionInitializationLevel level){
  GDExtensionClassMethodArgumentMetadata stream_metadata[4]{};m.name=stream_method.data;m.call_func=call_streams;m.argument_count=4;m.arguments_info=stream_args;m.arguments_metadata=stream_metadata;register_method(library,name.data,&m);
  ptr_destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
 }
-void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;light_history::unregister_owner();model_pose_storage::unregister_owner();keys.clear();particle_stream_render::unregister_owner();particle_presentation::unregister_owner();particle_frame_group::unregister_owner();particle_counters::unregister_owner();particle_upload::unregister_owner();Name wind("NwnWindManager");unregister_class(library,wind.data);fixed_terrain_support::unregister_owner();Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
+void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;particle_pose_handle::unbind();light_history::unregister_owner();model_pose_storage::unregister_owner();keys.clear();particle_stream_render::unregister_owner();particle_presentation::unregister_owner();particle_frame_group::unregister_owner();particle_counters::unregister_owner();particle_upload::unregister_owner();Name wind("NwnWindManager");unregister_class(library,wind.data);fixed_terrain_support::unregister_owner();Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
 }
 extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExtensionInterfaceGetProcAddress address,GDExtensionClassLibraryPtr lib,GDExtensionInitialization* init){
  library=lib;particle_scene_boundary::direct_address=address;
