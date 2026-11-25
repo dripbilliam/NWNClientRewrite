@@ -679,7 +679,7 @@ func apply_pose(id: int) -> void:
 		if not (previous is Array and previous.size()==2 and previous[0]==code and previous[1]==speed):
 			animations[id]=[code,speed]; stats.animation_changes+=1
 		if is_instance_valid(combat):
-			combat.base_frame(id,code,speed,CombatMotion.remaining_path(movement))
+			combat.base_frame(id,code,speed,CombatMotion.remaining_path(movement),object if id==controlled_id else {})
 			# Original movement/turn requests enter private playback; they must not
 			# replace the replicated base state or reset a running combat cue.
 			if movement.get("correctionCue") is Dictionary: combat.movement_cue(id,movement.correctionCue)

@@ -126,7 +126,7 @@ func receive(message: Dictionary) -> void:
 			if pending.size() < 512:
 				pending.append({"row": row, "received": now()})
 
-func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Variant = null, observes_motion: bool = false) -> void:
+func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Variant = null, observes_motion: bool = false, controlled_source: Dictionary = {}) -> void:
 	var s := ensure(id)
 	if s.is_empty():
 		if is_instance_valid(rigs):
@@ -136,6 +136,9 @@ func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Var
 	if observes_motion:
 		_record_motion_path(s, remaining_path)
 	if pivots.has(id):
+	if animation == 1 and remaining_path is bool and not remaining_path and not controlled_source.is_empty():
+		if _cleared_ready_base(s, controlled_source):
+			animation = 0
 		actors[id].position = pivots[id].global_position
 		var rotation: float = pivots[id].rotation.y
 		actors[id].orientation = Vector3(-sin(rotation), 0, -cos(rotation))
@@ -172,6 +175,20 @@ func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Var
 		return
 	if s.current.is_empty() and s.queue.entries.is_empty():
 		play(id, animation, speed, base_loop(int(actors[id].objectType),animation), false)
+static func _cleared_ready_base(state: Dictionary, source: Dictionary) -> bool:
+	# The initial snapshot can retain ready pose 1 after combat has cleared.
+	# Use the disclosed state and keep any current swing until it finishes.
+	# Original creature tick 1407fcd70 selects stance from the combat mode.
+	# A separate facing track uses its own target lock.
+	var received: Dictionary = source.get("replicated", {})
+	var combat_state: Variant = received.get("field700")
+	var combat_cleared: bool = (combat_state is bool and not combat_state) or ((combat_state is int or combat_state is float) and combat_state == 0)
+	if not combat_cleared or received.get("animation") != 1 or received.get("field8D6") != 0:
+		return false
+	var path: Variant = received.get("path")
+	var actions: Variant = source.get("playerState", {}).get("actionQueue")
+	return path is Array and path.is_empty() and actions is Array and actions.is_empty() and state.pending == null and state.queue.entries.is_empty()
+
 
 func motion_frame(id: int,remaining_path: Variant) -> void:
 	var s:=ensure(id)

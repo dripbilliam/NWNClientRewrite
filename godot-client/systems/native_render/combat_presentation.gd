@@ -33,9 +33,11 @@ func receive(message: Dictionary) -> void:
 		if row.get("action","") not in ["cast-animation","attack-animation"]: continue
 		if pending.size()>=512: stats.overflow+=1; continue
 		pending.append({"row":row.duplicate(true),"received":Time.get_ticks_msec()}); stats.received+=1
-func base_frame(id: int,animation: int,speed: float,remaining_path: Variant=null) -> void:
+func base_frame(id: int,animation: int,speed: float,remaining_path: Variant=null,controlled_source: Dictionary={}) -> void:
 	if not closed:
-		engine.base_frame(id,animation,speed,remaining_path,true)
+		# A just-received cue is still owned here until update hands it off.
+		if not controlled_source.is_empty() and not pending.is_empty() and pending.any(func(entry): return int(entry.row.id)==id): controlled_source={}
+		engine.base_frame(id,animation,speed,remaining_path,true,controlled_source)
 func visual_animation(id: int,fallback: int) -> int:
 	return int(engine.states[id].visual) if not closed and engine.states.has(id) else fallback
 func movement_cue(id: int,request: Dictionary) -> bool:

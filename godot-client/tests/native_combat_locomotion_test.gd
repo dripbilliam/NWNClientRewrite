@@ -46,6 +46,40 @@ func run() -> void:
 		if code in [2,4]:
 			var labels: Array=engine.events.map(func(event):return str(event.kind)+":"+str(event.get("animation",-1)))
 			check(labels.find("prepare-moving-melee:-1")>=0 and labels.find("prepare-moving-melee:-1")<labels.rfind("play:0"),"Received moving-melee admission precedes no-path restore for gait%s"%code)
+	var cleared := {"replicated":{"animation":1.0,"field700":0.0,"field8D6":0.0,"facingTarget":2130706432.0,"path":[]},"playerState":{"actionQueue":[]}}
+	configure()
+	engine.base_frame(1,1,1.0,false,true,cleared)
+	check(int(engine.states[1].base)==0 and int(engine.states[1].visual)==0 and int(engine.stats.attacks)==0,"A fresh controlled actor with the retained ready code and explicit cleared combat joins in ordinary idle")
+	var neutral_facing:=cleared.duplicate(true)
+	neutral_facing.replicated.facingTarget=2.0
+	configure()
+	engine.actors[1].facingTarget=2
+	engine.base_frame(1,1,1.0,false,true,neutral_facing)
+	check(int(engine.states[1].base)==0 and int(engine.states[1].visual)==0 and engine.actors.has(2) and int(engine.actors[1].facingTarget)==2,"Neutral combat mode restores idle while a live facing lock remains")
+	for retained in [{"field700":1.0},{"field700":true},{"field700":null},{"field8D6":null},{"field8D6":2.0,"facingTarget":2.0},{"field8D6":3.0},{"field8D6":14.0},{"path":[Vector3.ZERO]}]:
+		var active:=cleared.duplicate(true)
+		active.replicated.merge(retained,true)
+		configure()
+		engine.base_frame(1,1,1.0,false,true,active)
+		check(int(engine.states[1].visual)==1,"Ready stays eligible when authority reports or does not rule out an active state %s"%str(retained))
+	var local_action:=cleared.duplicate(true)
+	local_action.playerState.actionQueue=[{"type":3}]
+	configure()
+	engine.base_frame(1,1,1.0,false,true,local_action)
+	check(int(engine.states[1].visual)==1,"An authoritative queued attack retains the ready base")
+	for path_state in [null,true]:
+		configure()
+		engine.base_frame(1,1,1.0,path_state,true,cleared)
+		check(int(engine.states[1].visual)==1,"An active or unknown presentation path cannot infer idle")
+	configure()
+	engine.base_frame(1,1,1.0,false,true)
+	check(int(engine.states[1].visual)==1,"A noncontrolled actor retains its received ready animation")
+	configure()
+	engine.insert(1,{"animation":200,"duration":250,"speed":1.0,"record":null,"delay":0})
+	engine.base_frame(1,1,1.0,false,true,cleared)
+	check(int(engine.states[1].base)==1 and not engine.states[1].queue.entries.is_empty(),"Local queued attack presentation retains its base and animation cue")
+	engine.update()
+	check(int(engine.states[1].visual)==200,"Queued attack animation plays despite the cleared base snapshot")
 	configure(); engine.base_frame(1,4); motion(true); engine.update()
 	check(int(engine.states[1].visual)==4,"A known remaining path retains its locomotion visual")
 	motion(false); motion(null); engine.update(); check(int(engine.states[1].visual)==4,"Unavailable path context retires prior false without stopping a gait")
