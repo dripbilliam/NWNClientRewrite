@@ -1,8 +1,8 @@
 extends Node
-# Per-world native standard-material profile and SET-selected 2D environment.
+# Per-world native standard-material profile and SET-selected environment.
 # Original Scene::Render chooses SET EnvMap, then chrome1 on lookup failure.
 # Payload decoding uses existing native workers; late/retired worlds cannot
-# replace a newer world's global sampler. Cube/mapped profiles remain open.
+# replace a newer world's global sampler.
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Palette=preload("res://systems/native_render/native_light_palette.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
@@ -19,24 +19,27 @@ var jobs: Dictionary={}
 var selected:=""
 var requested:=""
 var map_ready:=false
+var selected_cube:=false
 var failure:=""
+var profile_failure:=""
 var publications:=0
 var profile_us:=0
 func configure(source,shared_pool) -> void:
 	catalog=source; pool=shared_pool; pool.native_standard=false
-	if not pool.native_lighting: return
+	if pool.native_lighting: configure_profile()
+	enabled=true; active_id=get_instance_id(); Palette.environment(null)
+	assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(catalog); assets.completed.connect(completed)
+	request_map("chrome1")
+func configure_profile() -> void:
 	var began:=Time.get_ticks_usec()
 	var expected: Dictionary=RETAIL_SHADERS.merged(RETAIL_PROGRAMS)
 	for name in expected:
 		var bytes: PackedByteArray=catalog.get_resource(name,2069)
-		if bytes.is_empty(): failure="Native standard shader profile unavailable: "+name; break
+		if bytes.is_empty(): profile_failure="Native standard shader profile unavailable: "+name; break
 		hashes[name]=Cache.digest(bytes)
-		if hashes[name]!=expected[name]: failure="Active native shader profile requires mapping: "+name; break
+		if hashes[name]!=expected[name]: profile_failure="Active native shader profile requires mapping: "+name; break
 	profile_us=Time.get_ticks_usec()-began
-	if not failure.is_empty(): return
-	enabled=true; pool.native_standard=true; active_id=get_instance_id(); Palette.environment(null)
-	assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(catalog); assets.completed.connect(completed)
-	request_map("chrome1")
+	pool.native_standard=profile_failure.is_empty()
 static func selected_name(definition: Dictionary) -> String:
 	var general: Dictionary=definition.get("tileset",{}).get("sections",{}).get("GENERAL",{})
 	for key in general:
@@ -49,12 +52,7 @@ func receive_definition(definition: Dictionary) -> void:
 func request_map(name: String) -> void:
 	if closed or not enabled or requested==name: return
 	requested=name
-	var location: Dictionary=catalog.raster_location(name)
-	if location.is_empty():
-		if name!="chrome1": request_map("chrome1")
-		else: failure="Native fallback environment bitmap unavailable"
-		return
-	var job: int=assets.request(name,int(location.type),"raster")
+	var job: int=assets.request(name,3,"reflection-map")
 	if job<0: failure=assets.failure; return
 	jobs[job]=name
 func completed(id: int,result: Dictionary) -> void:
@@ -62,12 +60,14 @@ func completed(id: int,result: Dictionary) -> void:
 	var name: String=jobs[id]; jobs.erase(id)
 	if closed or active_id!=get_instance_id() or name!=requested: return
 	if not str(result.get("error","")).is_empty():
-		failure="Native environment decode: "+str(result.error); return
-	var texture=pool.texture(result)
+		if name!="chrome1": request_map("chrome1")
+		else: failure="Native environment decode: "+str(result.error)
+		return
+	var texture: Texture=pool.garment_reflection(result)
 	if texture==null: failure=pool.failure; return
-	Palette.environment(texture); selected=name; map_ready=true; publications+=1; failure=""
+	Palette.environment(texture); selected=name; selected_cube=texture is Cubemap; map_ready=true; publications+=1; failure=""
 func snapshot() -> Dictionary:
-	return {"enabled":enabled,"ready":map_ready,"requested":requested,"selected":selected,"closed":closed,"failure":failure,"pending":jobs.size(),"publications":publications,"profile_us":profile_us,"shader_sha256":hashes.duplicate(),"policy":"Original retail fragment-lit ordinary materials and SET-selected 2D environment; mapped/cube and quality-0 vertex paths pending"}
+	return {"enabled":enabled,"ready":map_ready,"requested":requested,"selected":selected,"cube":selected_cube,"closed":closed,"failure":failure,"profile_failure":profile_failure,"pending":jobs.size(),"publications":publications,"profile_us":profile_us,"shader_sha256":hashes.duplicate(),"policy":"SET-selected environment and optional original retail fragment-lit profile"}
 func close() -> void:
 	if closed: return
 	closed=true

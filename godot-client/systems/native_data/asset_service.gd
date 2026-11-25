@@ -91,7 +91,7 @@ func configure(source) -> void:
 func request(name: String, type: int, decoder: String = "bytes", options: Dictionary = {}) -> int:
 	failure = ""
 	if closed or catalog == null: failure = "Native asset service is unavailable"; return -1
-	if decoder not in ["bytes", "gff", "2da", "mdl-binary", "mdl-original", "raster", "static-model", "actor-model", "gui-icon-v1", "tile-surface-v1", "pwk-surface-v1", "dwk-surface-v1", "nui-skin-v1", "font-v1", "bitmap-font-v1", "wave-native-v1", "ssf-native-v1", "ltr-native-v1"]: failure = "Unknown native decoder"; return -1
+	if decoder not in ["bytes", "gff", "2da", "mdl-binary", "mdl-original", "raster", "reflection-map", "static-model", "actor-model", "gui-icon-v1", "tile-surface-v1", "pwk-surface-v1", "dwk-surface-v1", "nui-skin-v1", "font-v1", "bitmap-font-v1", "wave-native-v1", "ssf-native-v1", "ltr-native-v1"]: failure = "Unknown native decoder"; return -1
 	if pending.size() + running.size() >= maximum_pending: failure = "Native asset queue is full"; return -1
 	Prework.remember_request(catalog,name,type,decoder,options)
 	serial += 1
@@ -127,6 +127,15 @@ func prioritize(request_ids: Array) -> void:
 func _work(job: Dictionary) -> void:
 	var began := Time.get_ticks_usec()
 	var reader = job.catalog
+	if job.decoder=="reflection-map":
+		var reflection:=reflection_raster(reader,job,str(job.name))
+		var error:=str(reader.failure)
+		if reflection.is_empty() and error.is_empty(): error="Reflection map unavailable: "+str(job.name)
+		reflection.merge({"id":job.id,"epoch":job.epoch,"resource_name":str(job.name),
+			"error":error,"resource_error":error,"thread":OS.get_thread_caller_id(),
+			"worker_ms":(Time.get_ticks_usec()-began)/1000.0},true)
+		publish_result(job,reflection)
+		return
 	var named_key:=""
 	var named_bundle: Dictionary={}
 	# A mounted KEY binding has a catalog lifetime. A named alias shares the
@@ -167,6 +176,7 @@ func _work(job: Dictionary) -> void:
 		if not named_hit:
 			var preparation_revision:="native-preparation-5-vertex-colors"
 			if job.decoder in ["actor-model","static-model"]:preparation_revision+=":"+Prework.MODEL_METADATA_REVISION
+			if job.options.get("garment_material_txi",false):preparation_revision+=":"+Prework.GARMENT_MATERIAL_REVISION
 			if shared_animation_preparation_enabled: preparation_revision+=":"+SharedAnimation.REVISION
 			memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,source_sha,job.options,mesh_preparation_enabled,skin_preparation_enabled]))
 		var saved: Dictionary=named_bundle if named_hit else job.memory_store.load_data(memory_key,int(job.memory_epoch))
@@ -225,23 +235,40 @@ func _work(job: Dictionary) -> void:
 		if job.decoder in ["static-model","actor-model"] and str(result.error).is_empty():
 			var textures := {}; var dependencies: Array = []; var missing_textures: Array=[]
 			var palette_override: Dictionary={}
+			var metal_palette: String=job.options.get("metal_palette","")
+			var worn_palette := not metal_palette.is_empty()
 			# Body-part PLTs replace the model bitmap as a whole, following the
 			# explicit original candidate order. Present corrupt PLTs are errors.
 			for candidate in job.options.get("plt_candidates",[]):
 				if not reader.has_resource(str(candidate),6): continue
-				palette_override=Palette.new().prepare(reader,str(candidate),job.options.get("palette_colors",[]),str(job.cache_directory))
+				# Stock ConstructImage tries the ordinary image for a layered
+				# reference before expanding its PLT. A custom raster keeps its own alpha.
+				if worn_palette:
+					var ordinary:=model_raster(reader,job,str(candidate))
+					if not reader.failure.is_empty():
+						result.error=reader.failure
+						break
+					palette_override=ordinary.get("raster",{})
+				if palette_override.is_empty():
+					palette_override=Palette.new().prepare(reader,str(candidate),job.options.get("palette_colors",[]),str(job.cache_directory),metal_palette)
 				if not str(palette_override.get("error","")).is_empty(): result.error=palette_override.error
 				break
+			if job.options.get("garment_material_txi",false) and str(result.error).is_empty():
+				result.value=prepare_garment_materials(reader,job,result.value,textures,dependencies)
 			for part in result.value.nodes:
 				if not str(result.error).is_empty(): break
 				# Collision-only / authored non-rendering parts retain their mesh
 				# data, but their unused bitmaps are not display dependencies.
 				if not part.mesh.get("render",false): continue
-				for texture_name in part.mesh.get("textures",[]):
-					var name := str(texture_name).to_lower()
+				var bitmap_slots: Array=part.mesh.get("textures",[])
+				for slot in bitmap_slots.size():
+					if slot==0 and part.get("garment_material",{}).has("raster_name"): continue
+					var name := str(bitmap_slots[slot]).to_lower()
 					if name.is_empty() or name == "null" or textures.has(name): continue
 					if not palette_override.is_empty():
-						textures[name]=palette_override; dependencies.append({"name":name,"sha256":palette_override.sha256,"cache_hit":palette_override.cache_hit,"palette":true}); continue
+						textures[name]=palette_override
+						dependencies.append({"name":name,"sha256":palette_override.sha256,"cache_hit":palette_override.cache_hit,"palette":int(palette_override.value.get("type",-1))==6})
+						continue
 					var replacement:Variant=job.options.get("texture_overrides",{}).get(name,name)
 					if replacement is Dictionary:
 						var gui_palette:=GuiPalette.prepare(reader,replacement,str(job.cache_directory))
@@ -250,9 +277,11 @@ func _work(job: Dictionary) -> void:
 						if not reader.failure.is_empty():result.error=reader.failure;break
 						textures[name]=gui_palette;dependencies.append({"name":name,"replacement":replacement.resource,"sha256":gui_palette.sha256,"cache_hit":gui_palette.cache_hit,"palette":true,"selector":gui_palette.selector,"palette_source":gui_palette.palette_source});continue
 					var raster_name:=str(replacement)
-					var loaded: Dictionary={"palette":true} if job.options.has("palette_colors") and reader.has_resource(name,6) else model_raster(reader,job,raster_name)
+					var has_named_palette: bool=job.options.has("palette_colors") and reader.has_resource(name,6)
+					var loaded: Dictionary={"palette":true} if has_named_palette and not worn_palette else model_raster(reader,job,raster_name)
+					if loaded.is_empty() and has_named_palette: loaded={"palette":true}
 					if bool(loaded.get("palette",false)):
-						var palette:=Palette.new().prepare(reader,name,job.options.get("palette_colors",[]),str(job.cache_directory))
+						var palette:=Palette.new().prepare(reader,name,job.options.get("palette_colors",[]),str(job.cache_directory),metal_palette)
 						if not str(palette.get("error","")).is_empty(): result.error=palette.error; break
 						textures[name]=palette; dependencies.append({"name":name,"sha256":palette.sha256,"cache_hit":palette.cache_hit,"palette":true}); continue
 					if loaded.is_empty():
@@ -270,6 +299,23 @@ func _work(job: Dictionary) -> void:
 						if not reader.failure.is_empty(): result.error=reader.failure; break
 					textures[name] = raster; dependencies.append({"name":name,"sha256":raster.sha256,"cache_hit":raster.cache_hit,"read_ms":loaded.read_ms,"timings":raster.timings})
 				if not str(result.error).is_empty(): break
+			if job.options.get("reflection_alpha",false):
+				var reflection_name: String=job.options.get("reflection_map","default")
+				var reflection: Dictionary={}
+				if reflection_name!="default" and not textures.is_empty():
+					reflection=optional_garment_reflection(reader,job,reflection_name,dependencies)
+				for name in textures:
+					if textures[name].is_empty(): continue
+					var mapped: Dictionary=textures[name].duplicate()
+					mapped.reflection_alpha=true
+					if not reflection.is_empty(): mapped.reflection_map=reflection
+					textures[name]=mapped
+			elif job.options.get("garment_material_txi",false):
+				for name in textures:
+					if textures[name].is_empty(): continue
+					var raster: Dictionary=textures[name].duplicate()
+					raster.garment_has_alpha=Raster.has_stock_alpha(raster.value)
+					textures[name]=raster
 			result.textures = textures; result.dependencies = dependencies; result.missing_textures=missing_textures
 			if str(result.error).is_empty():
 				var emitter:=prepare_emitter_textures(reader,result.value,str(job.cache_directory))
@@ -333,8 +379,156 @@ func model_raster(reader,job: Dictionary,name: String) -> Dictionary:
 	if bindings!=null and decoded!=null and str(raster.error).is_empty() and job.catalog.has_installed_archive_binding(name,type):
 		bindings.save_data(named_key,named_key,{"type":type,"sha256":raster.sha256},generation,256)
 	return {"raster":raster,"read_ms":read_ms}
+func prepare_garment_materials(reader,job: Dictionary,model: Dictionary,textures: Dictionary,dependencies: Array) -> Dictionary:
+	var materials: Dictionary={}
+	var bitmap_materials: Dictionary={}
+	var named_maps: Dictionary={}
+	var overrides: Dictionary={}
+	var parts: Array=model.nodes
+	for index in parts.size():
+		var part: Dictionary=parts[index]
+		if not part.mesh.get("render",false): continue
+		var bitmap: String=part.mesh.get("material_bitmap","")
+		var material: String=part.mesh.get("material_name","")
+		if material.is_empty(): material=bitmap
+		if not materials.has(material): materials[material]=garment_shared_material(reader,job,material,textures,dependencies)
+		var binding: Dictionary=materials[material].duplicate()
+		if not bitmap_materials.has(bitmap): bitmap_materials[bitmap]=garment_texture_attributes(reader,bitmap)
+		var attributes: Dictionary=bitmap_materials[bitmap]
+		if attributes.has("blend"): binding.blend=attributes.blend
+		elif not binding.get("custom_shader",false): binding.blend="normal"
+		# A stock program can use both the shared MTR and original bitmap TXI.
+		# Named custom programs own their own reflection logic.
+		if not binding.get("custom_shader",false) and not job.options.get("reflection_alpha",false):
+			var name: String=attributes.get("reflection","")
+			if not name.is_empty():
+				if not named_maps.has(name): named_maps[name]=optional_garment_reflection(reader,job,name,dependencies)
+				binding.reflection_map=named_maps[name]
+		binding.erase("custom_shader")
+		if not binding.is_empty(): overrides[index]=binding
+	if overrides.is_empty(): return model
+	# Cached MDL nodes remain immutable across different resource and dye jobs.
+	var prepared:=model.duplicate()
+	prepared.nodes=parts.duplicate()
+	for index in overrides:
+		var part: Dictionary=parts[index].duplicate()
+		part.garment_material=overrides[index]
+		prepared.nodes[index]=part
+	return prepared
+func garment_shared_material(reader,job: Dictionary,name: String,textures: Dictionary,dependencies: Array) -> Dictionary:
+	if name.is_empty() or name=="null" or not reader.has_resource(name,2072): return {}
+	var bytes: PackedByteArray=reader.get_resource(name,2072)
+	if not reader.failure.is_empty():
+		reader.failure=""
+		return {}
+	var fields: Dictionary={}
+	for row in bytes.get_string_from_ascii().replace("\r","\n").split("\n",false):
+		var tokens:=row.strip_edges().replace("\t"," ").split(" ",false)
+		if tokens.size()<2: continue
+		var key:=tokens[0].to_lower()
+		var value:=tokens[1].to_lower()
+		if key=="transparency" and value not in ["0","1","true","false"]: continue
+		fields["texture0" if key=="bitmap" else key]=value
+	var binding: Dictionary={}
+	if fields.get("transparency","") in ["1","true"]: binding.transparent=true
+	if fields.has("customshadervs") and fields.has("customshaderfs"): binding.custom_shader=true
+	var slot0: String=fields.get("texture0","")
+	if slot0=="null": binding.raster_name=""
+	elif not slot0.is_empty():
+		var raster_name:="garment-mtr:"+slot0
+		if not textures.has(raster_name):
+			var raster: Dictionary=model_raster(reader,job,slot0).get("raster",{})
+			reader.failure=""
+			if not raster.is_empty() and str(raster.error).is_empty():
+				textures[raster_name]=raster
+				dependencies.append({"name":slot0,"role":"garment_material_diffuse","sha256":raster.sha256,"cache_hit":raster.cache_hit})
+		if textures.has(raster_name): binding.raster_name=raster_name
+	return binding
+func garment_texture_attributes(reader,bitmap: String) -> Dictionary:
+	if bitmap.is_empty() or bitmap=="null" or not reader.has_resource(bitmap,2022): return {}
+	var bytes: PackedByteArray=reader.get_resource(bitmap,2022)
+	if not reader.failure.is_empty():
+		reader.failure=""
+		return {}
+	var attributes: Dictionary={}
+	for row in bytes.get_string_from_ascii().replace("\r","\n").split("\n",false):
+		var fields:=row.strip_edges().replace("\t"," ").split(" ",false)
+		if fields.size()<2: continue
+		var field:=fields[0].to_lower()
+		if field=="envmaptexture": attributes.reflection="" if fields[1]=="NULL" else fields[1].to_lower()
+		elif field=="blending" and fields[1] in ["additive","punchthrough"]: attributes.blend=fields[1]
+	return attributes
+func optional_garment_reflection(reader,job: Dictionary,name: String,dependencies: Array) -> Dictionary:
+	var reflection:=reflection_raster(reader,job,name)
+	# Missing or invalid named maps keep stock's scene reflection enabled.
+	if not reader.failure.is_empty() or not reflection.get("error","").is_empty(): reflection={}
+	reader.failure=""
+	if not reflection.is_empty():
+		dependencies.append({"name":name,"role":"garment_environment","sha256":reflection.sha256,"cache_hit":reflection.cache_hit})
+	return reflection
+func reflection_raster(reader,job: Dictionary,name: String) -> Dictionary:
+	var cube:=false
+	var columns:=1
+	var rows:=1
+	var file_range:=0
+	if reader.has_resource(name,2022):
+		var attributes: PackedByteArray=reader.get_resource(name,2022)
+		if not reader.failure.is_empty(): return {}
+		for line in attributes.get_string_from_ascii().replace("\r","\n").split("\n",false):
+			var fields:=line.strip_edges().replace("\t"," ").split(" ",false,2)
+			if fields.size()<2: continue
+			match fields[0].to_lower():
+				"cube": cube=fields[1].to_lower() in ["1","true"]
+				"numx": columns=int(fields[1]) if fields[1].is_valid_int() else columns
+				"numy": rows=int(fields[1]) if fields[1].is_valid_int() else rows
+				"filerange": file_range=int(fields[1]) if fields[1].is_valid_int() else file_range
+	if not cube: return model_raster(reader,job,name).get("raster",{})
+	# Stock excludes its compressed callbacks for cube textures and uses a
+	# vertically stacked ordinary raster for all six faces.
+	if columns<1 or rows<1 or file_range<0 or file_range>32767: return {}
+	var result:=cube_file_range(reader,job,name,file_range) if file_range>0 else cube_raster(reader,job,name)
+	if result.is_empty(): return {}
+	var size:=floori(float(result.value.width)/columns)
+	var face_height:=floori(float(result.value.height)/6.0)
+	if size<1 or size!=floori(float(face_height)/rows): return {}
+	result.cube=true
+	result.cube_face_size=size
+	return result
+func cube_raster(reader,job: Dictionary,name: String) -> Dictionary:
+	if not reader.has_resource(name,3): return {}
+	var bytes: PackedByteArray=reader.get_resource(name,3)
+	if not reader.failure.is_empty(): return {}
+	var result:=decode(bytes,3,"raster",str(job.cache_directory),job.decoder_store)
+	return result if result.get("error","").is_empty() else {}
+func cube_file_range(reader,job: Dictionary,name: String,count: int) -> Dictionary:
+	var pixels:=PackedByteArray()
+	var hashes: Array[String]=[]
+	var width:=0
+	var height:=0
+	var cached:=true
+	for index in count:
+		# CAurTextureBasic::LoadImageA tries the ordinary index before its
+		# zero-prefixed alias, then concatenates the resolved rasters.
+		var face:=cube_raster(reader,job,name+str(index))
+		if face.is_empty():
+			reader.failure=""
+			face=cube_raster(reader,job,name+"0"+str(index))
+		if face.is_empty(): return {}
+		var data: Dictionary=face.value
+		if index==0:
+			width=int(data.width)
+			height=int(data.height)
+			if height*count>=32768 or width*height*count>Raster.MAX_PIXELS: return {}
+		if int(data.width)!=width or int(data.height)!=height: return {}
+		pixels.append_array(data.mips[0].data)
+		hashes.append(str(face.sha256))
+		cached=cached and bool(face.cache_hit)
+	var full_height:=height*count
+	return {"sha256":Cache.digest(var_to_bytes(hashes)),"cache_hit":cached,
+		"value":{"width":width,"height":full_height,"mips":[{"width":width,"height":full_height,"data":pixels}],
+			"format":"rgba8","generate_mips":true,"type":3}}
 func raster_decode_key(type: int, source_sha: String) -> String:
-	return "decoded-native-v1:"+str(type)+":raster:"+source_sha
+	return "decoded-native-v1:"+str(type)+":raster:"+source_sha+(":"+Raster.DDS_ALPHA_REVISION if type==2033 else "")
 func publish_result(job: Dictionary,result: Dictionary) -> void:
 	if not job.status_only and (bool(job.get("raster_upload_preparation",false)) or bool(job.get("worker_texture_creation",false))) and str(result.get("error","")).is_empty():
 		var upload_began:=Time.get_ticks_usec();var sidecar:=RasterUpload.sidecar_on_worker(result,bool(job.get("worker_texture_creation",false)))
@@ -404,7 +598,7 @@ func icon_textures(reader,model: Dictionary,layers: Array,cache_path: String) ->
 	var textures: Dictionary={}; var dependencies: Array=[]
 	for index in layers.size():
 		var layer: Dictionary=layers[index]; var raster: Dictionary={}
-		if int(layer.type)==6: raster=Palette.new().prepare(reader,str(layer.name),layer.get("palette",[]),cache_path,true)
+		if int(layer.type)==6: raster=Palette.new().prepare(reader,str(layer.name),layer.get("palette",[]),cache_path,"pal_armor02")
 		else:
 			var selected: Dictionary=reader.raster_location(str(layer.name))
 			if selected.is_empty(): return {"error":"Original icon raster is absent: "+str(layer.name)}
@@ -580,6 +774,7 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 	# expanded derivative on the critical path. Model/raster persistence remains.
 	var cache_ok := decoder!="2da" and not cache_path.is_empty() and cache.configure(cache_path)
 	var identity := Cache.key(source_sha,decoder+":"+str(type)+(":emitter-3:reference-1:clip-duration-1:classification-1:mesh-area-1:hit-faces-1:ambient-1:vertex-color-1:"+Prework.MODEL_METADATA_REVISION if decoder.begins_with("mdl-") else ""))
+	if decoder=="raster" and type==2033: identity=Cache.key(identity,Raster.DDS_ALPHA_REVISION)
 	if mesh_preparation_enabled and decoder.begins_with("mdl-"): identity=Cache.key(identity,mesh_revision())
 	if decoder=="tile-surface-v1": identity=Cache.key(source_sha,decoder+":"+str(type)+":vertical-bounds-1")
 	var timings := {"identity_ms":(Time.get_ticks_usec()-began)/1000.0,"cache_read_ms":0.0,"decode_ms":0.0,"cache_write_ms":0.0}

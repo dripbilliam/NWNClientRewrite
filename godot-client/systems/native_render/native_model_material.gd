@@ -15,12 +15,27 @@ var _configuring_shader:=false
 	set(value): native_world_fog=value; set_shader_parameter("native_world_fog",value)
 @export var standard_specular:=false:
 	set(value): standard_specular=value; refresh_shader()
+@export var godot_reflection:=false:
+	set(value): godot_reflection=value; refresh_shader()
+@export var garment_blend:="":
+	set(value): garment_blend=value; refresh_shader()
+@export var garment_authored_transparency:=false
+@export var godot_garment_shading:="":
+	set(value): godot_garment_shading=value; refresh_shader()
 @export var standard_quality:=2:
 	set(value): standard_quality=clampi(value,1,2); refresh_shader()
 @export var albedo_color:=Color.WHITE:
-	set(value): albedo_color=value; set_shader_parameter("native_diffuse",Policy.linear_rgb([value.r,value.g,value.b])); set_shader_parameter("native_alpha",value.a)
+	set(value):
+		albedo_color=value
+		if uses_godot_surface(): set_shader_parameter("native_godot_color",value)
+		else: set_shader_parameter("native_diffuse",Policy.linear_rgb([value.r,value.g,value.b]))
+		set_shader_parameter("native_alpha",value.a)
 @export var emission:=Color.BLACK:
-	set(value): emission=value; var raw:=value.linear_to_srgb(); set_shader_parameter("native_emission",Policy.linear_rgb([raw.r,raw.g,raw.b]))
+	set(value):
+		emission=value
+		var raw:=value.linear_to_srgb()
+		if uses_godot_surface(): set_shader_parameter("native_godot_emission",raw)
+		else: set_shader_parameter("native_emission",Policy.linear_rgb([raw.r,raw.g,raw.b]))
 @export var emission_enabled:=false:
 	set(value): emission_enabled=value; set_shader_parameter("native_emission_enabled",value)
 @export var transparency:=BaseMaterial3D.TRANSPARENCY_DISABLED:
@@ -35,13 +50,29 @@ var _configuring_shader:=false
 	set(value): filter_mode=value; refresh_shader()
 @export var scissor:=false:
 	set(value): scissor=value; refresh_shader()
-func configure(source: StandardMaterial3D,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null) -> void:
-	configure_values(source.albedo_color,source.albedo_texture,source.texture_filter,source.transparency,ambient_value,raw_emission,standard,quality,surface_policy)
-func configure_values(diffuse_value: Color,texture_value: Texture2D,filter_value: int,transparency_value: int,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null) -> void:
+@export var reflection_alpha:=false:
+	set(value): reflection_alpha=value; refresh_shader()
+@export var reflection_texture: Texture:
+	set(value):
+		if reflection_texture==value: return
+		var has_map_changed: bool=(reflection_texture==null)!=(value==null) or (reflection_texture is Cubemap)!=(value is Cubemap)
+		reflection_texture=value
+		if has_map_changed: refresh_shader()
+		elif named_reflection(): set_shader_parameter("native_reflection_map",value)
+func named_reflection() -> bool:
+	return reflection_alpha and (standard_specular or uses_godot_surface()) and reflection_texture!=null
+func uses_godot_surface() -> bool:
+	return godot_reflection or not godot_garment_shading.is_empty()
+func configure(source: StandardMaterial3D,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null,reflection_mask: bool=false) -> void:
+	configure_values(source.albedo_color,source.albedo_texture,source.texture_filter,source.transparency,ambient_value,raw_emission,standard,quality,surface_policy,reflection_mask)
+func configure_values(diffuse_value: Color,texture_value: Texture2D,filter_value: int,transparency_value: int,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null,reflection_mask: bool=false,use_godot_reflection: bool=false,reflection_map: Texture=null,garment: Dictionary={}) -> void:
 	# Configure one final shader variant. Intermediate setter combinations are
 	# never rendered, but compiling/binding them can drain unrelated render work.
 	_configuring_shader=true
-	standard_specular=standard; standard_quality=quality
+	standard_specular=standard; standard_quality=quality; reflection_alpha=reflection_mask
+	godot_reflection=use_godot_reflection; reflection_texture=reflection_map
+	garment_blend=garment.get("blend",""); godot_garment_shading=garment.get("godot_shading","")
+	garment_authored_transparency=garment.get("authored_transparency",false)
 	Palette.ensure(); filter_mode=filter_value; scissor=transparency_value==BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	transparency=transparency_value
 	# Omitted policy preserves legacy reconfiguration of an existing material.
@@ -57,17 +88,79 @@ static func variant_key(blended: bool,cutout: bool,filter_value: int,standard: b
 	# the existing key bytes and every filtering/quality/surface combination.
 	return str(blended)+str(cutout)+filtering_name(filter_value)+str(standard)+str(quality)+str(surface)+str(tile_fog)
 func shader_variant_key() -> String:
-	return variant_key(transparency==BaseMaterial3D.TRANSPARENCY_ALPHA,scissor,filter_mode,standard_specular,standard_quality,native_surface_output,native_tile_fog_enabled)
+	var key:=variant_key(transparency==BaseMaterial3D.TRANSPARENCY_ALPHA,scissor,filter_mode,standard_specular,standard_quality,native_surface_output,native_tile_fog_enabled)
+	if reflection_alpha: key+=":reflection-alpha"
+	if godot_reflection: key+=":godot-lighting"
+	if named_reflection(): key+=":cube-reflection" if reflection_texture is Cubemap else ":named-reflection"
+	if not garment_blend.is_empty(): key+=":garment:"+garment_blend+":"+godot_garment_shading
+	return key
+static func godot_surface_code(filtering: String,draw_modes: String,defines: String,alpha_code: String) -> String:
+	return "shader_type spatial;\nrender_mode cull_back"+draw_modes+";\n"+defines+"""
+global uniform sampler2D nwn_native_environment;
+"""+StandardLight.reflection_code()+"""
+global uniform bool nwn_native_environment_ready;
+uniform sampler2D native_texture : source_color,repeat_enable,%s;
+uniform bool native_has_texture=false;
+uniform vec4 native_godot_color : source_color=vec4(1.0);
+uniform vec4 native_godot_emission : source_color=vec4(0.0);
+uniform bool native_emission_enabled=false;
+uniform float native_alpha=1.0;
+void fragment(){
+ vec4 texel=native_has_texture?texture(native_texture,UV):vec4(1.0);
+#ifdef NWN_REFLECTION_ALPHA
+ vec3 map_color=vec3(0.0);
+ float reflectivity=1.0-texel.a;
+#ifdef NWN_CUBE_REFLECTION
+ vec3 world_reflection=mat3(INV_VIEW_MATRIX)*reflect(-VIEW,NORMAL);
+ map_color=texture(native_reflection_map,nwn_cube_direction(world_reflection)).rgb;
+#elif defined(NWN_NAMED_REFLECTION)
+ map_color=texture(native_reflection_map,nwn_standard_environment_uv(NORMAL,VERTEX)).rgb;
+#else
+ if(nwn_native_environment_ready){
+  map_color=nwn_sample_scene_environment(VIEW,NORMAL,mat3(INV_VIEW_MATRIX),nwn_standard_environment_uv(NORMAL,VERTEX),0.0);
+ }else{
+  reflectivity=0.0;
+ }
+#endif
+ if(!OUTPUT_IS_SRGB){map_color=pow(map_color,vec3(2.2));}
+ ALBEDO=mix(texel.rgb,map_color,reflectivity)*native_godot_color.rgb;
+#else
+ ALBEDO=texel.rgb*native_godot_color.rgb;
+#endif
+ ROUGHNESS=1.0;
+ if(native_emission_enabled){EMISSION=native_godot_emission.rgb;}
+ %s
+}
+""" % [filtering,alpha_code]
 func refresh_shader() -> void:
 	if _configuring_shader:return
 	if native_surface_output: preload("res://systems/native_render/native_surface_state.gd").ensure()
-	var blended:=transparency==BaseMaterial3D.TRANSPARENCY_ALPHA
+	var additive:=garment_blend=="additive"
+	var blended:=additive or (garment_blend!="punchthrough" and transparency==BaseMaterial3D.TRANSPARENCY_ALPHA)
+	var draw_modes:=""
+	if blended: draw_modes=",depth_draw_always" if garment_blend=="normal" else ",depth_draw_never"
+	if additive: draw_modes+=",blend_add"
 	var filtering:=filtering_name(filter_mode)
 	var key:=shader_variant_key()
 	if not shaders.has(key):
 		var program_began:=Timing.begin()
 		var program:=Shader.new()
-		var shader_code: String="shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+(",depth_draw_never" if blended else "")+(",fog_disabled" if native_surface_output else "")+";\n"+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+"""
+		var reflection_define:="#define NWN_REFLECTION_ALPHA 1\n" if reflection_alpha else ""
+		if named_reflection():
+			reflection_define+="#define NWN_CUBE_REFLECTION 1\n" if reflection_texture is Cubemap else "#define NWN_NAMED_REFLECTION 1\n"
+		var alpha_code:="if(texel.a<0.035)discard;" if scissor else ""
+		if blended:
+			var opacity_expression:="native_alpha" if reflection_alpha else "texel.a*native_alpha"
+			alpha_code="ALPHA=nwn_effective_alpha;" if standard_specular and not uses_godot_surface() else "ALPHA="+opacity_expression+";"
+		if additive or garment_blend=="punchthrough" or (garment_blend=="normal" and blended):
+			# Stock's transparent buckets test effective alpha against 0.2.
+			# Source replacement is an opaque write after the same rejection.
+			var effective:="clamp(native_alpha,0.0,1.0)"
+			if not reflection_alpha: effective="texel.a*"+effective
+			alpha_code="float garment_alpha="+effective+";if(garment_alpha<=0.2)discard;"
+			if blended: alpha_code+="ALPHA=garment_alpha;"
+		var godot_modes:=draw_modes+(",unshaded" if godot_garment_shading=="unshaded" else "")
+		var shader_code: String=godot_surface_code(filtering,godot_modes,reflection_define,alpha_code) if uses_godot_surface() else ("shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+draw_modes+(",fog_disabled" if native_surface_output else "")+";\n"+reflection_define+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+"""
 uniform sampler2D native_texture : repeat_enable,%s;
 uniform bool native_has_texture=false;
 uniform vec3 native_ambient=vec3(1.0);
@@ -78,6 +171,9 @@ uniform float native_alpha=1.0;
 void vertex(){nwn_world_vertex=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; %s}
 void fragment(){
  vec4 texel=native_has_texture?texture(native_texture,UV):vec4(1.0);
+#if defined(NWN_REFLECTION_ALPHA) && defined(NWN_STANDARD_QUALITY)
+ texel.rgb=mix(texel.rgb,vec3(0.666667),1.0-texel.a);
+#endif
  ALBEDO=sign(texel.rgb)*pow(abs(texel.rgb),vec3(2.2));
  %s
  EMISSION=ALBEDO*(native_ambient*nwn_native_ambient*%s+(native_emission_enabled?native_emission:vec3(0.0)));
@@ -94,14 +190,20 @@ void light(){
  %s
  %s
 }
-""" % [filtering,(StandardLight.vertex_code() if standard_specular else "")+(SurfaceTransfer.vertex_code() if native_surface_output else ""),StandardLight.fragment_code() if standard_specular else "","(1.0-nwn_environment_specularity)" if standard_specular else "1.0","EMISSION+=nwn_specular_color*nwn_environment_rgb*nwn_native_ambient*native_ambient*nwn_standard_environment_scale();" if standard_specular else "",("ALPHA=nwn_effective_alpha;" if standard_specular else "ALPHA=texel.a*native_alpha;") if blended else ("if(texel.a<0.035)discard;" if scissor else ""),SurfaceTransfer.fragment_code() if native_surface_output else "","nwn_standard_cosine(dot(NORMAL,LIGHT))" if standard_specular else "max(dot(NORMAL,LIGHT),0.0)","+(lighting.y>0.5?0.0:nwn_standard_translucence(dot(NORMAL,LIGHT)))" if standard_specular else "","vec3 nwn_surface_diffuse=" if native_surface_output else "DIFFUSE_LIGHT+=","*(1.0-nwn_environment_specularity)" if standard_specular else "",(("vec3 nwn_surface_specular=" if native_surface_output else "SPECULAR_LIGHT+=")+"LIGHT_COLOR*(lighting.x/PI)*nwn_specular_color*(diffuse_cosine*response*nwn_environment_rgb*nwn_standard_environment_scale()+(lighting.y<0.5&&cosine>0.0?cosine*nwn_standard_specular(NORMAL,LIGHT,VIEW,max(dot(NORMAL,LIGHT),0.0)):0.0));") if standard_specular else ("vec3 nwn_surface_specular=vec3(0.0);" if native_surface_output else ""),SurfaceTransfer.light_code() if native_surface_output else ""]
+""" % [filtering,(StandardLight.vertex_code() if standard_specular else "")+(SurfaceTransfer.vertex_code() if native_surface_output else ""),StandardLight.fragment_code() if standard_specular else "","(1.0-nwn_environment_specularity)" if standard_specular else "1.0","EMISSION+=nwn_specular_color*nwn_environment_rgb*nwn_native_ambient*native_ambient*nwn_standard_environment_scale();" if standard_specular else "",alpha_code,SurfaceTransfer.fragment_code() if native_surface_output else "","nwn_standard_cosine(dot(NORMAL,LIGHT))" if standard_specular else "max(dot(NORMAL,LIGHT),0.0)","+(lighting.y>0.5?0.0:nwn_standard_translucence(dot(NORMAL,LIGHT)))" if standard_specular else "","vec3 nwn_surface_diffuse=" if native_surface_output else "DIFFUSE_LIGHT+=","*(1.0-nwn_environment_specularity)" if standard_specular else "",(("vec3 nwn_surface_specular=" if native_surface_output else "SPECULAR_LIGHT+=")+"LIGHT_COLOR*(lighting.x/PI)*nwn_specular_color*(diffuse_cosine*response*nwn_environment_rgb*nwn_standard_environment_scale()+(lighting.y<0.5&&cosine>0.0?cosine*nwn_standard_specular(NORMAL,LIGHT,VIEW,max(dot(NORMAL,LIGHT),0.0)):0.0));") if standard_specular else ("vec3 nwn_surface_specular=vec3(0.0);" if native_surface_output else ""),SurfaceTransfer.light_code() if native_surface_output else ""]
+		)
 		program.code=shader_code
 		InstanceContract.register_program(program,shader_code,native_surface_output and native_tile_fog_enabled)
 		shaders[key]=program
 		Timing.finish("publication_material_shader_build_ms",program_began)
 	var bind_began:=Timing.begin()
 	shader=shaders[key]
+	if named_reflection(): set_shader_parameter("native_reflection_map",reflection_texture)
+	if uses_godot_surface():
+		set_shader_parameter("native_godot_color",albedo_color)
+		set_shader_parameter("native_godot_emission",emission.linear_to_srgb())
 	Timing.finish("publication_material_shader_bind_ms",bind_began)
 func publish_native_pose(color_value: Color,emission_value: Color,blended: bool) -> void:
 	albedo_color=color_value; emission=emission_value; emission_enabled=emission_value.r!=0 or emission_value.g!=0 or emission_value.b!=0
+	if garment_blend=="normal": blended=garment_authored_transparency or color_value.a<1.0
 	transparency=BaseMaterial3D.TRANSPARENCY_ALPHA if blended else BaseMaterial3D.TRANSPARENCY_DISABLED

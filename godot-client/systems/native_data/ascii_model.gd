@@ -57,6 +57,8 @@ func parse(text: String) -> Dictionary:
 			current={"name":name,"kind":tokens[1].to_lower(),"parent_name":"NULL","position":[0.0,0.0,0.0],"orientation":[0.0,0.0,1.0,0.0],"scale":1.0,"alpha":1.0,"selfillum":[0.0,0.0,0.0],"diffuse":[1.0,1.0,1.0],"shadow":0 if tokens[1].to_lower()=="light" else 1,"render":1,"transparencyhint":0,"verts":[],"tverts":[],"faces":[],"textures":[],"properties":{}}
 			current.native_tilefade=0;current.native_tilefade_available=true;current.native_tilefade_source="ascii_constructor_default"
 			current.ambient=[1.0,1.0,1.0]
+			current.material_bitmap=""
+			current.material_name=""
 			by_name[name]=source_nodes.size()
 			var folded:=name.to_lower()
 			if not by_folded_name.has(folded): by_folded_name[folded]=[]
@@ -66,7 +68,13 @@ func parse(text: String) -> Dictionary:
 		if tokens.size()>1: current.properties[command]=" ".join(tokens.slice(1))
 		if command=="tilefade":native_tilefade_field(current," ".join(tokens.slice(1)));continue
 		if command=="parent": current.parent_name=" ".join(tokens.slice(1)); continue
-		if command=="bitmap" and tokens.size()>1: current.textures.append(tokens[1].to_lower()); continue
+		if command=="materialname" and tokens.size()>1:
+			current.material_name=tokens[1].to_lower()
+			continue
+		if command in ["bitmap","texture0"] and tokens.size()>1:
+			current.material_bitmap=tokens[1].to_lower()
+			if command=="bitmap": current.textures.append(current.material_bitmap)
+			continue
 		# Emitter 'render Normal' is a mode, not a mesh visibility number.
 		if command=="render" and current.kind=="emitter": continue
 		if command in ["verts","tverts","faces"]:
@@ -129,6 +137,9 @@ func geometry(source: Dictionary) -> Array:
 	if source.faces.is_empty() and source.verts.is_empty(): return []
 	var groups: Array=[]; var material_indices: Array=[]
 	var native_metadata:=native_mesh_metadata(source)
+	# Every face group keeps the material identity of its physical source node.
+	native_metadata.material_bitmap=source.material_bitmap
+	native_metadata.material_name=source.material_name
 	for face in source.faces:
 		if face.size()<7: reject("ASCII MDL face has too few fields"); return []
 		var material_index:=0

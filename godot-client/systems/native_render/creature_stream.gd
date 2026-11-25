@@ -164,6 +164,7 @@ func _plan_object(object: Dictionary) -> void:
 	var placement:=pose(object)
 	if placement.is_empty(): return # Equipped/non-world item registry rows.
 	var pieces: Array=[]; var maps: Dictionary={}; var kind:=int(object.objectType)
+	var cloak_hidden_scopes: Array=[]
 	if kind==5:
 		stats.planned_creatures+=1
 		var planner:=Appearance.new(); var plan:=planner.plan(object,tables)
@@ -175,9 +176,13 @@ func _plan_object(object: Dictionary) -> void:
 			pieces.append(piece)
 		for part in plan.attachments:
 			var piece: Dictionary=part.duplicate(); piece.anchor=part.node; piece.follow=true
-			if int(piece.get("nativeVisualScope",-1))==243 and not catalog.has_resource(str(piece.model),2002) and not catalog.has_resource(str(piece.get("fallbackModel","")),2002):
-				stats.warnings.append({"id":object.id,"reason":"Original worn-cloak model is unavailable: "+str(piece.model)})
-				continue
+			if int(piece.get("nativeVisualScope",-1))==243:
+				if not catalog.has_resource(str(piece.model),2002) and not catalog.has_resource(str(piece.get("fallbackModel","")),2002):
+					stats.warnings.append({"id":object.id,"reason":"Original worn-cloak model is unavailable: "+str(piece.model)})
+					continue
+				# Stock applies cloak occlusion after successfully loading slot 243.
+				# A missing worn model leaves the original body and attachments intact.
+				cloak_hidden_scopes=piece.hiddenScopes
 			pieces.append(piece)
 		pieces.append_array(equipment(object,row("appearance",int(object.appearance.appearance)),planner))
 		if stats.object_failures.has(int(object.id)): return
@@ -193,9 +198,11 @@ func _plan_object(object: Dictionary) -> void:
 	if pieces.is_empty(): return
 	var resolved_pieces: Array=[]
 	for piece in pieces:
+		var covered_by_cloak:=int(piece.get("partIndex",piece.get("nativeVisualScope",-1))) in cloak_hidden_scopes
 		var name:=str(piece.model)
 		if not catalog.has_resource(name,2002): name=str(piece.get("fallbackModel",""))
 		if name.is_empty() or not catalog.has_resource(name,2002):
+			if covered_by_cloak: continue
 			var part_index:=int(piece.get("partIndex",-1))
 			if kind==5 and part_index>=0 and part_index<18:
 				# A missing modular mesh does not invalidate the body rig or its other parts.
@@ -205,13 +212,43 @@ func _plan_object(object: Dictionary) -> void:
 			return
 		var options:={"plt_candidates":piece.get("pltCandidates",[]),"relevant_tracks":true}
 		if piece.has("paletteColors"): options.palette_colors=piece.paletteColors
+		if piece.has("metalPalette"): options.metal_palette=piece.metalPalette
+		if piece.get("reflectionAlpha",false):
+			options.reflection_alpha=true
+			options.reflection_map=piece.reflectionMap
+		if kind==5 and (int(piece.get("nativeVisualScope",-1))==243 or int(piece.get("partIndex",-1))==18):
+			options.garment_material_txi=true
 		var key:=JSON.stringify([name,options]); piece.key=key
 		piece.source_model=name; piece.source_options=options
+		if covered_by_cloak: piece.covered_by_cloak=true
+		if int(piece.get("nativeVisualScope",-1))==243: placement.cloak_key=key
 		resolved_pieces.append(piece)
 	for piece in resolved_pieces:
-		if not model_specs.has(piece.key): model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}; waiting.append(piece.key)
-		piece.erase("source_model"); piece.erase("source_options")
+		if not piece.get("covered_by_cloak",false): queue_piece(piece)
 	placement.merge({"id":int(object.id),"kind":kind,"pieces":resolved_pieces,"maps":maps,"animation":int(object.get("replicated",{}).get("animation",0))}); plans.append(placement)
+func queue_piece(piece: Dictionary) -> void:
+	if not model_specs.has(piece.key):
+		model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}
+		waiting.append(piece.key)
+	piece.erase("source_model"); piece.erase("source_options")
+func resolve_cloak_coverage(plan: Dictionary) -> bool:
+	var cloak_key: String=plan.get("cloak_key","")
+	if cloak_key.is_empty(): return true
+	if not bundles.has(cloak_key): return false
+	var error:=str(bundles[cloak_key].error)
+	if not error.is_empty():
+		stats.warnings.append({"id":plan.id,"model":model_specs[cloak_key].name,"reason":error})
+		priority_dirty=true
+	var visible_pieces: Array=[]
+	for piece in plan.pieces:
+		if int(piece.get("nativeVisualScope",-1))==243 and not error.is_empty(): continue
+		if piece.get("covered_by_cloak",false):
+			if error.is_empty(): continue
+			queue_piece(piece)
+		visible_pieces.append(piece)
+	plan.pieces=visible_pieces
+	plan.erase("cloak_key")
+	return true
 func prepared(id: int,result: Dictionary) -> void:
 	if closed: return
 	if table_jobs.has(id):
@@ -257,6 +294,7 @@ func _profile_process(_delta: float) -> void:
 		if not publication_current(int(plan.id)):
 			plans.remove_at(index); stats.stale_publications=int(stats.get("stale_publications",0))+1
 			break
+		if not resolve_cloak_coverage(plan): continue
 		for piece in plan.pieces:
 			if not bundles.has(piece.key): ready=false; continue
 			if not str(bundles[piece.key].error).is_empty(): failures.append({"model":model_specs[piece.key].name,"reason":bundles[piece.key].error})

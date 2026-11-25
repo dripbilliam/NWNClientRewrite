@@ -17,6 +17,7 @@ var actor_revision:=0
 var actor_publishing:=false
 var actor_again:=false
 func publish_actor_part_pose(color_value: Color,emission_value: Color,blended: bool) -> void:
+	if garment_blend=="normal": blended=garment_authored_transparency or color_value.a<1.0
 	actor_part_color=color_value;actor_part_emission=emission_value;actor_part_emission_enabled=emission_value.r!=0 or emission_value.g!=0 or emission_value.b!=0;actor_part_blended=blended;actor_revision+=1
 	var context:=actor_alpha_context
 	if not actor_publishing and context!=null and context.plain and not context.closed:

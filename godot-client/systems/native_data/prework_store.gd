@@ -2,8 +2,10 @@ extends RefCounted
 # Explicitly generated, data-only artifacts. Never contains game downloads or
 # live nodes. Dependency bytes, lookup decisions and engine/schema identify reuse.
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const Palette=preload("res://systems/native_data/palette_texture.gd")
 const REVISION:="session-prework-v2"
-const MODEL_METADATA_REVISION:="native-part-bounds-1-tilefade-1"
+const MODEL_METADATA_REVISION:="native-part-bounds-1-tilefade-1-material-name-1"
+const GARMENT_MATERIAL_REVISION:="garment-shared-material-5"
 # Preserve v1's identity across changes to cache locking/scheduling. This is
 # the original v1 store fingerprint, not a model processor. Format changes
 # bump REVISION; actual decoder/render source hashes remain tracked below.
@@ -98,7 +100,8 @@ static func request_key(name: String,type: int,decoder: String,options: Dictiona
 	var identity: Array=[name.to_lower(),type,decoder,settings,source_sha,policy,processor_identity()]
 	# Baked models must retain original Part selection/render metadata. Do not
 	# change unrelated bitmap/2DA cache identities to invalidate a model payload.
-	if decoder in ["actor-model","static-model"]:identity.append(MODEL_METADATA_REVISION)
+	if decoder in ["actor-model","static-model"]:identity.append_array([MODEL_METADATA_REVISION,Palette.OUTPUT_REVISION])
+	if settings.get("garment_material_txi",false):identity.append(GARMENT_MATERIAL_REVISION)
 	return Cache.key(Cache.digest(var_to_bytes(identity)),REVISION)
 static func valid_icon(data: Dictionary) -> bool:
 	var width:=int(data.get("width",0)); var height:=int(data.get("height",0)); var pixels: Variant=data.get("pixels")

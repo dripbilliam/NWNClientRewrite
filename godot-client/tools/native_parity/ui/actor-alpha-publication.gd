@@ -20,6 +20,10 @@ static func refresh(material) -> void:
 		# Native GetIsOpaque tests Part and Gob alpha independently. A Part .5
 		# with global2 remains blended even though its product equals1.
 		var blend: bool=material.actor_part_blended or color.a<1.0 or context.colour_shift_active and context.alpha<1.0
+		var default_transparency: int=material.actor_base_transparency
+		if not material is StandardMaterial3D and material.garment_blend=="normal":
+			blend=material.garment_authored_transparency or color.a<1.0 or (context.multiplications>0 and context.alpha<1.0)
+			default_transparency=BaseMaterial3D.TRANSPARENCY_DISABLED
 		material.albedo_color=Color(color.r*vector.x,color.g*vector.y,color.b*vector.z,alpha)
 		if changed(material,context,generation,local_revision):continue
 		var addition: Vector3=context.selected_emission
@@ -40,7 +44,7 @@ static func refresh(material) -> void:
 				if changed(material,context,generation,local_revision):continue
 				material.set_shader_parameter("native_emission",NativeLightPolicy.linear_rgb([sum.r,sum.g,sum.b]))
 		if changed(material,context,generation,local_revision):continue
-		material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA if blend else material.actor_base_transparency
+		material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA if blend else default_transparency
 		if changed(material,context,generation,local_revision):continue
 		if material is StandardMaterial3D:material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED if blend else material.actor_base_depth_draw
 		if changed(material,context,generation,local_revision):continue

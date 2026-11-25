@@ -140,8 +140,8 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 			var geometry=shared_pool.geometry(bundle.sha256,index,data,use_skeleton and not row.has("skin"))
 			if geometry==null: failure=shared_pool.failure; holder.free(); return false
 			var raster: Dictionary={}
-			if not data.textures.is_empty() and str(data.textures[0]).to_lower() not in ["","null"]:
-				var texture_name:=str(data.textures[0]).to_lower()
+			var texture_name:=primary_raster_name(row)
+			if not texture_name.is_empty():
 				if not bundle.get("textures",{}).has(texture_name): failure="Original actor texture is not prepared: "+texture_name; holder.free(); return false
 				raster=bundle.textures[texture_name]
 			var material=shared_pool.material(row,raster)
@@ -298,8 +298,8 @@ func _install_model_part(state: Dictionary) -> bool:
 	var geometry=shared_pool.geometry(bundle.sha256,index,data,use_skeleton and not row.has("skin"))
 	if geometry==null: failure=shared_pool.failure; holder.free(); return false
 	var raster: Dictionary={}
-	if not data.textures.is_empty() and str(data.textures[0]).to_lower() not in ["","null"]:
-		var texture_name:=str(data.textures[0]).to_lower()
+	var texture_name:=primary_raster_name(row)
+	if not texture_name.is_empty():
 		if not bundle.get("textures",{}).has(texture_name): failure="Original actor texture is not prepared: "+texture_name; holder.free(); return false
 		raster=bundle.textures[texture_name]
 	var material=shared_pool.material(row,raster)
@@ -319,6 +319,12 @@ func _install_model_part(state: Dictionary) -> bool:
 	if row.has("skin"): binding.skin=skin_source(row,model_index,index)
 	bindings.append(binding)
 	return true
+func primary_raster_name(row: Dictionary) -> String:
+	var garment: Dictionary=row.get("garment_material",{})
+	if garment.has("raster_name"): return garment.raster_name
+	var slots: Array=row.mesh.textures
+	var name:=str(slots[0]).to_lower() if not slots.is_empty() else ""
+	return "" if name=="null" else name
 func _install_model_finish(state: Dictionary) -> void:
 	var maps: Dictionary=state.maps
 	var initial_animation:=int(state.initial_animation)

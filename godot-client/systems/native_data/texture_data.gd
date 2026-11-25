@@ -3,6 +3,7 @@ extends RefCounted
 const Binary = preload("res://systems/native_data/binary_data.gd")
 const Conversion=preload("res://systems/native_data/raster_conversion.gd")
 const MAX_PIXELS := 16777216
+const DDS_ALPHA_REVISION := "dds-alpha-mean-1"
 var failure := ""
 var reader
 var use_native:=Conversion.configured_enabled()
@@ -47,7 +48,7 @@ func bioware_dds() -> Dictionary:
 	var format := "dxt1_rgb" if marker == 3 else "dxt5"
 	if reader.u32(12) != block_bytes(format, width, height): return reject("Invalid BioWare DDS top mip size")
 	var mips := packed_mips(20, width, height, format, 16, true)
-	return {"width": width, "height": height, "format": format, "mips": mips, "generate_mips": false}
+	return {"width": width, "height": height, "format": format, "mips": mips, "generate_mips": false, "stock_alpha_mean":reader.f32(16)}
 func dds() -> Dictionary:
 	if not reader.contains(0, 128) or reader.u32(4) != 124: return reject("Invalid standard DDS header")
 	var width: int = reader.u32(16); var height: int = reader.u32(12)
@@ -60,7 +61,7 @@ func dds() -> Dictionary:
 		if not reader.contains(128, 20) or reader.u32(132) != 3 or reader.u32(136) & 4 or reader.u32(140) != 1: return reject("Unsupported DDS DX10 texture kind")
 		format = {95:"bc6h_unsigned",96:"bc6h_signed"}.get(reader.u32(128), ""); at = 148
 	if not format.is_empty():
-		return {"width":width, "height":height, "format":format, "mips":packed_mips(at,width,height,format,count), "generate_mips":false}
+		return {"width":width, "height":height, "format":format, "mips":packed_mips(at,width,height,format,count), "generate_mips":false,"stock_alpha_mean":0.5 if format=="dxt5" else 1.0}
 	var bits: int = reader.u32(88)
 	if bits not in [24,32] or reader.u32(92) != 0xff0000 or reader.u32(96) != 0xff00 or reader.u32(100) != 0xff or (bits == 32 and reader.u32(104) != 0xff000000): return reject("Unsupported DDS pixel format")
 	var mips: Array = []; var w := width; var h := height
@@ -137,3 +138,14 @@ func tga() -> Dictionary:
 		cursor += stride * (1 if repeat else run); done += run
 	# Ignore descriptor origin bits, as the original CResTGA reader does.
 	return {"width":width,"height":height,"format":"rgba8","mips":[{"width":width,"height":height,"data":pixels}],"generate_mips":true}
+static func has_stock_alpha(value: Dictionary) -> bool:
+	var format: String=value.format
+	var mean:=float(value.get("stock_alpha_mean",-1.0))
+	if mean!=-1.0: return mean<1.0
+	if format=="rgba8":
+		var pixels: PackedByteArray=value.mips[0].data
+		for offset in range(3,pixels.size(),4):
+			if pixels[offset]!=255: return true
+		return false
+	# Compressed RGBA without a stored mean is classified as alpha-bearing.
+	return format in ["dxt1_rgba","dxt3","dxt5"]

@@ -10,6 +10,8 @@ static var image: Image
 static var texture: ImageTexture
 static var environment_texture: Texture2D
 static var empty_environment: Texture2D
+static var environment_cube: Cubemap
+static var empty_environment_cube: Cubemap
 static var free_slots: Array[int]=[]
 static var active: Dictionary={}
 static var dirty:=false
@@ -24,6 +26,13 @@ static func ensure() -> void:
 	RenderingServer.global_shader_parameter_add("nwn_native_ambient",RenderingServer.GLOBAL_VAR_TYPE_VEC3,Vector3.ZERO)
 	var empty:=Image.create(1,1,false,Image.FORMAT_RGBA8); empty.fill(Color.BLACK); empty_environment=ImageTexture.create_from_image(empty); environment_texture=empty_environment
 	RenderingServer.global_shader_parameter_add("nwn_native_environment",RenderingServer.GLOBAL_VAR_TYPE_SAMPLER2D,environment_texture)
+	RenderingServer.global_shader_parameter_add("nwn_native_environment_ready",RenderingServer.GLOBAL_VAR_TYPE_BOOL,false)
+	var faces: Array[Image]=[empty,empty,empty,empty,empty,empty]
+	empty_environment_cube=Cubemap.new()
+	empty_environment_cube.create_from_images(faces)
+	environment_cube=empty_environment_cube
+	RenderingServer.global_shader_parameter_add("nwn_native_environment_cube",RenderingServer.GLOBAL_VAR_TYPE_SAMPLERCUBE,environment_cube)
+	RenderingServer.global_shader_parameter_add("nwn_native_environment_is_cube",RenderingServer.GLOBAL_VAR_TYPE_BOOL,false)
 	for index in range(CAPACITY-1,-1,-1): free_slots.append(index)
 static func acquire(owner: Node) -> int:
 	ensure()
@@ -42,9 +51,14 @@ static func release(slot: int) -> void:
 	active.erase(slot); free_slots.append(slot); image.set_pixel(1,slot,Color(0,0,0,0)); dirty=true; revision+=1
 static func ambient(value: Vector3) -> void:
 	ensure(); RenderingServer.global_shader_parameter_set("nwn_native_ambient",value)
-static func environment(value: Texture2D) -> void:
-	ensure(); environment_texture=value if value!=null else empty_environment
+static func environment(value: Texture) -> void:
+	ensure()
+	environment_texture=value if value is Texture2D else empty_environment
+	environment_cube=value if value is Cubemap else empty_environment_cube
 	RenderingServer.global_shader_parameter_set("nwn_native_environment",environment_texture)
+	RenderingServer.global_shader_parameter_set("nwn_native_environment_cube",environment_cube)
+	RenderingServer.global_shader_parameter_set("nwn_native_environment_is_cube",value is Cubemap)
+	RenderingServer.global_shader_parameter_set("nwn_native_environment_ready",value!=null)
 static func upload_snapshot() -> Image:
 	# A distinct Image object owns immutable COW bytes while RenderingServer
 	# consumes the queued upload. Later canonical set_pixel calls detach.

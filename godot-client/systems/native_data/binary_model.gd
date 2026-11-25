@@ -105,6 +105,10 @@ func read_mesh(at: int) -> Dictionary:
 	var normal_offset: int = reader.u32(at + 468)
 	var color_offset: int = reader.u32(at + 472)
 	var result := {"vertices": PackedFloat32Array(), "normals": PackedFloat32Array(), "uv": [], "indices": PackedInt32Array(), "collision_indices": PackedInt32Array(), "textures": [], "render": reader.u32(at + 108) == 1, "shadow": reader.u32(at + 100) == 1, "transparency_hint": reader.u32(at + 112) == 1, "diffuse": [reader.f32(at + 72),reader.f32(at + 76),reader.f32(at + 80)]}
+	# Stock copies these slots before loading geometry. GetMaterialName prefers
+	# the explicit name, while Material reads the TXI for the first bitmap.
+	result.material_bitmap=reader.text(at+0x78,64,true).to_lower()
+	result.material_name=reader.text(at+0x138,64,true).to_lower()
 	# Native MdlNodeTriMesh header copier078ab0 preserves these authored local
 	# bounds (plain full-node84/90 -> runtimeC0/CC). HitCheckGeom uses the header,
 	# including invisible Parts; recalculating a vertex AABB can change the box.

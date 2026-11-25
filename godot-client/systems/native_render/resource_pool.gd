@@ -386,6 +386,32 @@ func prepare_texture(record: Dictionary) -> Texture2D:
 func geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false) -> ArrayMesh:
 	var began:=Timing.begin(); var result:=prepare_geometry(source_sha,index,data,rigid_skin)
 	Timing.finish("publication_mesh_cpu_ms",began); return result
+func garment_reflection(record: Dictionary) -> Texture:
+	if not record.get("cube",false): return texture(record)
+	var data: Dictionary=record.value
+	var size:=int(record.get("cube_face_size",data.width))
+	var key:="garment-cube:"+str(record.sha256)+":"+str(size)
+	if textures.has(key):
+		stats.texture_hits+=1; touch("texture",key)
+		return textures[key]
+	var face_height:=floori(float(data.height)/6.0)
+	var strip:=Image.create_from_data(int(data.width),int(data.height),false,Image.FORMAT_RGBA8,data.mips[0].data)
+	if strip==null or strip.is_empty(): return null
+	var faces: Array[Image]=[]
+	# Stock GLRender emits +X, -X, +Y, -Y, +Z, -Z in this source order.
+	for face_index in 6:
+		var source_index: int=[1,0,2,3,4,5][face_index]
+		var face:=strip.get_region(Rect2i(0,source_index*face_height,size,size))
+		match face_index:
+			0: face.rotate_90(CLOCKWISE)
+			1: face.rotate_90(COUNTERCLOCKWISE)
+			3,4: face.rotate_180()
+		if data.get("generate_mips",false) and face.generate_mipmaps()!=OK: return null
+		faces.append(face)
+	var result:=Cubemap.new()
+	if result.create_from_images(faces)!=OK: return null
+	retain("texture",textures,key,result,maximum_textures); stats.textures_created+=1
+	return result
 func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false) -> ArrayMesh:
 	if not main_thread(): return null
 	var key := Cache.key(source_sha,"mesh:"+str(index)+("-rigid-skin" if rigid_skin else "")+("-pick" if picking else ""))
@@ -490,9 +516,25 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	var opacity := clampf(float(part.get("alpha",1)),0,1); var data: Dictionary = part.mesh
 	var diffuse: Array = data.get("diffuse",[1.0,1.0,1.0]); var emission: Array = part.get("selfillum",[0.0,0.0,0.0]); var hint: bool = data.get("transparency_hint",false)
 	var ambient: Array=data.get("ambient",diffuse)
-	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output])
+	var reflection_alpha: bool = raster.get("reflection_alpha",false)
+	var reflection: Dictionary=raster.get("reflection_map",{})
+	var garment: Dictionary=part.get("garment_material",{})
+	if not reflection_alpha and garment.has("reflection_map"):
+		reflection_alpha=true
+		reflection=garment.reflection_map
+	var garment_blend: String=garment.get("blend","")
+	var godot_garment_shading:="unshaded" if unshaded else ("lit" if not native_lighting else "")
+	var authored_transparency: bool=garment_blend=="normal" and (garment.get("transparent",false) or (not reflection_alpha and raster.get("garment_has_alpha",false)))
+	var godot_reflection:=reflection_alpha and not native_lighting and not unshaded
+	var alpha_mode:=BaseMaterial3D.TRANSPARENCY_DISABLED
+	if garment_blend=="normal":
+		if opacity<1 or authored_transparency: alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
+	elif garment_blend=="punchthrough": alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	elif garment_blend=="additive" or opacity<1 or garment.get("transparent",false) or (hint and not reflection_alpha): alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
+	elif not reflection_alpha and not raster.is_empty() and raster.value.format!="dxt1_rgb": alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,alpha_mode,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output,reflection_alpha,reflection.get("sha256",""),reflection.get("cube",false),reflection.get("cube_face_size",0),garment_blend,authored_transparency])
 	if materials.has(key): stats.material_hits += 1; touch("material",key); return materials[key]
-	if native_lighting and not unshaded and texture_filter>=0 and texture_filter<BaseMaterial3D.TEXTURE_FILTER_MAX:
+	if not garment_blend.is_empty() or ((godot_reflection or (native_lighting and not unshaded)) and texture_filter>=0 and texture_filter<BaseMaterial3D.TEXTURE_FILTER_MAX):
 		# Publish only the final ShaderMaterial. Avoid the unused StandardMaterial
 		# CPU property bag; backend material resources are allocated lazily.
 		# A native texture getter returns OBJECT-null. NIL would clear the shader
@@ -501,13 +543,15 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 		if not raster.is_empty():
 			original_texture=texture(raster)
 			if original_texture==null:return null
-		var alpha_mode:=BaseMaterial3D.TRANSPARENCY_DISABLED
-		if hint or opacity<1:alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
-		elif not raster.is_empty() and raster.value.format!="dxt1_rgb":alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		var configure_began:=Timing.begin()
 		var corrected:=preload("res://systems/native_render/native_model_material.gd").new()
-		corrected.configure_values(Color(diffuse[0],diffuse[1],diffuse[2],opacity),original_texture,texture_filter,alpha_mode,ambient,emission,native_standard,2,native_surface_output)
-		corrected.native_world_fog=native_surface_output
+		var reflection_texture: Texture=null
+		var garment_shader: Dictionary={} if garment_blend.is_empty() else {"blend":garment_blend,"godot_shading":godot_garment_shading,"authored_transparency":authored_transparency}
+		var uses_godot_surface:=godot_reflection or (not garment_blend.is_empty() and not godot_garment_shading.is_empty())
+		if (native_standard or uses_godot_surface) and not reflection.is_empty():
+			reflection_texture=garment_reflection(reflection)
+		corrected.configure_values(Color(diffuse[0],diffuse[1],diffuse[2],opacity),original_texture,texture_filter,alpha_mode,ambient,emission,native_standard,2,native_surface_output and not uses_godot_surface,reflection_alpha,godot_reflection,reflection_texture,garment_shader)
+		if not uses_godot_surface: corrected.native_world_fog=native_surface_output
 		Timing.finish("publication_material_native_configure_ms",configure_began)
 		retain("material",materials,key,corrected,maximum_materials);stats.materials_created+=1
 		stats["direct_native_materials"]=int(stats.get("direct_native_materials",0))+1
@@ -517,18 +561,18 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	result.roughness = 1; result.metallic = 0; result.cull_mode = BaseMaterial3D.CULL_BACK
 	result.texture_repeat = true; result.texture_filter = texture_filter
 	if unshaded: result.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	if hint or opacity < 1:
-		result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; result.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	result.transparency=alpha_mode
+	if alpha_mode==BaseMaterial3D.TRANSPARENCY_ALPHA: result.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED
+	if alpha_mode==BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR: result.alpha_scissor_threshold=0.035
 	if emission.any(func(value): return float(value)>0): result.emission_enabled = true; result.emission = Color(emission[0],emission[1],emission[2])
 	if not raster.is_empty():
 		result.albedo_texture = texture(raster)
 		if result.albedo_texture == null: return null
-		if not hint and opacity >= 1 and raster.value.format != "dxt1_rgb":
-			result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; result.alpha_scissor_threshold = 0.035
 	var published: Material=result
 	if native_lighting and not unshaded:
 		var configure_began:=Timing.begin()
-		var corrected:=preload("res://systems/native_render/native_model_material.gd").new(); corrected.configure(result,ambient,emission,native_standard,2,native_surface_output); published=corrected
+		var corrected:=preload("res://systems/native_render/native_model_material.gd").new(); corrected.configure(result,ambient,emission,native_standard,2,native_surface_output,reflection_alpha); published=corrected
+		if native_standard and not reflection.is_empty(): corrected.reflection_texture=garment_reflection(reflection)
 		corrected.native_world_fog=native_surface_output
 		Timing.finish("publication_material_native_configure_ms",configure_began)
 	retain("material",materials,key,published,maximum_materials); stats.materials_created += 1

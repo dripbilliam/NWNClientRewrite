@@ -1,9 +1,10 @@
 extends RefCounted
-# PLT pixels and palette TGAs both retain the original bottom-up file order.
-# Color row zero is therefore TGA row zero, without a second texture flip.
+# PLT indices retain file order. Stock AurSetPalette reverses the raster rows
+# after CResTGA decodes the palette and before it copies the palette bank.
 const Raster=preload("res://systems/native_data/texture_data.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
 const Conversion=preload("res://systems/native_data/raster_conversion.gd")
+const OUTPUT_REVISION:="plt-original-2"
 const NAMES=["pal_skin01","pal_hair01","pal_armor01","pal_armor02","pal_cloth01","pal_cloth01","pal_leath01","pal_leath01","pal_tattoo01","pal_tattoo01"]
 var failure:=""
 var use_native:=Conversion.configured_enabled()
@@ -69,10 +70,17 @@ func decode(bytes: PackedByteArray, palettes: Dictionary, color_rows: Array=[]) 
 	return {"type":6,"width":info.width,"height":info.height,"format":"rgba8","uv_flip_y":false,"generate_mips":true,"mips":[{"width":info.width,"height":info.height,"data":output}]}
 func parse_palette(raw: PackedByteArray) -> Dictionary:
 	var parser:=Raster.new(); parser.use_native=use_native; var data:=parser.parse(raw,3)
+	if not data.is_empty():
+		var source: PackedByteArray=data.mips[0].data
+		var row_bytes:=int(data.width)*4
+		var rows:=PackedByteArray()
+		for row in range(int(data.height)-1,-1,-1):
+			rows.append_array(source.slice(row*row_bytes,(row+1)*row_bytes))
+		data.mips[0].data=rows
 	return {"value":data,"error":parser.failure,"conversion":parser.stats.duplicate()}
 func palette_data(raw: PackedByteArray,store) -> Dictionary:
 	var generation: int=store.generation() if store!=null else -1
-	var request_key:="palette-tga-2:"+Cache.digest(raw)
+	var request_key:="palette-tga-3:"+Cache.digest(raw)
 	var lease: Dictionary=store.begin_data(request_key,generation,false) if store!=null else {"owner":true}
 	if not lease.owner:
 		return {"value":lease.value.value,"error":lease.value.error,"decoded":false,"coalesced":int(lease.wait_us)>0,"wait_ms":int(lease.wait_us)/1000.0}
@@ -84,7 +92,7 @@ func palette_data(raw: PackedByteArray,store) -> Dictionary:
 		if str(parsed.error).is_empty(): store.save_data(request_key,request_key,value,generation,data.mips[0].data.size()+2048,true)
 		store.finish_data(request_key,generation,value)
 	return {"value":data,"error":parsed.error,"decoded":true,"coalesced":false,"wait_ms":0.0,"conversion":parsed.conversion}
-func prepare(catalog, name: String, color_rows: Array, cache_path: String="",icon_metal: bool=false) -> Dictionary:
+func prepare(catalog, name: String, color_rows: Array, cache_path: String="",metal_palette: String="") -> Dictionary:
 	stats={"native_pixels":0,"gd_pixels":0,"palette_coalesced":0}
 	var began:=Time.get_ticks_usec(); var bytes: PackedByteArray=catalog.get_resource(name,6)
 	var info:=header(bytes) if catalog.failure.is_empty() else {}
@@ -92,14 +100,15 @@ func prepare(catalog, name: String, color_rows: Array, cache_path: String="",ico
 	var palettes: Dictionary={}; var palette_sources: Dictionary={}; var dependencies: Array=[]; var rows: Array=[]
 	for layer in NAMES.size(): rows.append(color_rows[layer] if layer<color_rows.size() else 0)
 	for palette_name in info.palettes:
-		# Original UpdateIcons uses palette type3 for both metal icon channels.
-		var selected_name: String="pal_armor02" if icon_metal and palette_name=="pal_armor01" else palette_name
+		# Stock body and cloak assembly use bank 2 for both metal layers.
+		# Stock UpdateIcons uses bank 3 for both, keeping independent dye rows.
+		var selected_name: String=metal_palette if not metal_palette.is_empty() and palette_name in ["pal_armor01","pal_armor02"] else palette_name
 		var raw: PackedByteArray=catalog.get_resource(selected_name,3)
 		if not catalog.failure.is_empty(): return {"error":catalog.failure}
 		palette_sources[palette_name]=raw; dependencies.append([palette_name,Cache.digest(raw)])
 	# A palette edit, per-part color change or PLT edit creates a new identity.
 	# Pool texture keys and the persistent cache cannot alias two color sets.
-	var source_sha:=Cache.digest(bytes); var identity:=Cache.digest(var_to_bytes(["plt-original-1",source_sha,dependencies,rows]))
+	var source_sha:=Cache.digest(bytes); var identity:=Cache.digest(var_to_bytes([OUTPUT_REVISION,source_sha,dependencies,rows]))
 	var cache:=Cache.new(); var cached:=not cache_path.is_empty() and cache.configure(cache_path)
 	var decoder:="plt-original"; var key:=Cache.key(identity,decoder)
 	if cached:

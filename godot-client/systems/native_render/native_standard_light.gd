@@ -2,8 +2,33 @@ extends RefCounted
 # Native retail ovr.bif fslit / material / lighting / config, ordinary unmapped
 # fragment-lit material at quality 1/2. Base archive and quality-0 vertex paths
 # are different policies; do not substitute those equations for this revision.
+static func reflection_code() -> String:
+	return """
+#ifdef NWN_CUBE_REFLECTION
+uniform samplerCube native_reflection_map : filter_linear_mipmap;
+#elif defined(NWN_NAMED_REFLECTION)
+uniform sampler2D native_reflection_map : filter_linear_mipmap,repeat_disable;
+#endif
+global uniform samplerCube nwn_native_environment_cube;
+global uniform bool nwn_native_environment_is_cube;
+vec2 nwn_standard_environment_uv(vec3 normal,vec3 position_view){
+ vec2 reflect_uv=normal.xy/(1.0+abs(normal.z));
+ reflect_uv+=0.5*(position_view.xy/(-position_view.z+0.2));
+ return 0.5*reflect_uv+vec2(0.5,0.25);
+}
+vec3 nwn_cube_direction(vec3 world_reflection){
+ return vec3(world_reflection.x,-world_reflection.z,world_reflection.y);
+}
+vec3 nwn_sample_scene_environment(vec3 view,vec3 normal,mat3 view_to_world,vec2 uv,float lod){
+ if(nwn_native_environment_is_cube){
+  vec3 direction=nwn_cube_direction(view_to_world*reflect(-view,normal));
+  return texture(nwn_native_environment_cube,direction).rgb;
+ }
+ return texture(nwn_native_environment,uv,lod).rgb;
+}
+"""
 static func code(quality: int) -> String:
-	return "#define NWN_STANDARD_QUALITY "+str(clampi(quality,1,2))+"\n"+"""
+	return "#define NWN_STANDARD_QUALITY "+str(clampi(quality,1,2))+"\n"+reflection_code()+"""
 varying vec3 nwn_specular_color;
 varying float nwn_specularity;
 varying float nwn_environment_specularity;
@@ -11,11 +36,6 @@ varying float nwn_roughness;
 varying float nwn_effective_alpha;
 varying vec2 nwn_environment_uv;
 varying vec3 nwn_environment_rgb;
-vec2 nwn_standard_environment_uv(vec3 normal,vec3 position_view){
- vec2 reflect_uv=normal.xy/(1.0+abs(normal.z));
- reflect_uv+=0.5*(position_view.xy/(-position_view.z+0.2));
- return 0.5*reflect_uv+vec2(0.5,0.25);
-}
 float nwn_fresnel(float cosine){
  float value=1.0-cosine;
  #if NWN_STANDARD_QUALITY>1
@@ -71,18 +91,38 @@ static func fragment_code() -> String:
 	return """
  nwn_specularity=0.04;
  nwn_roughness=0.55;
+#ifdef NWN_REFLECTION_ALPHA
+ float reflection=1.0-texel.a;
+ nwn_specularity=mix(0.04,0.98,min(reflection*8.0,1.0));
+ #if NWN_STANDARD_QUALITY>1
+ nwn_roughness=mix(0.55,0.125,min(reflection*2.5,1.0));
+ #else
+ nwn_roughness=mix(0.55,0.175,min(reflection*2.5,1.0));
+ #endif
+#endif
  float nwn_ndotv=dot(NORMAL,VIEW);
  if(nwn_ndotv<0.0){NORMAL=normalize(NORMAL-nwn_ndotv*VIEW);nwn_ndotv=0.0;}
  nwn_environment_specularity=nwn_specularity;
  nwn_environment_specularity=mix(mix(nwn_environment_specularity,1.0,nwn_fresnel(nwn_ndotv)),nwn_environment_specularity,sqrt(nwn_roughness));
  vec3 nwn_albedo=ALBEDO*native_diffuse;
  nwn_specular_color=vec3(min(1.0,max(nwn_albedo.r,max(nwn_albedo.g,nwn_albedo.b))/pow(0.5,2.2)));
+#ifdef NWN_REFLECTION_ALPHA
+ nwn_effective_alpha=native_alpha;
+#else
  nwn_effective_alpha=texel.a*native_alpha;
+#endif
  #if NWN_STANDARD_QUALITY>1
  vec2 nwn_sample_uv=nwn_standard_environment_uv(NORMAL,VERTEX);
  #else
  vec2 nwn_sample_uv=nwn_environment_uv;
  #endif
- vec3 nwn_sample_environment=texture(nwn_native_environment,nwn_sample_uv,clamp(nwn_roughness*30.0-1.0,0.0,10.0)).rgb;
+#ifdef NWN_CUBE_REFLECTION
+ vec3 world_reflection=mat3(INV_VIEW_MATRIX)*reflect(-VIEW,NORMAL);
+ vec3 nwn_sample_environment=texture(native_reflection_map,nwn_cube_direction(world_reflection)).rgb;
+#elif defined(NWN_NAMED_REFLECTION)
+ vec3 nwn_sample_environment=texture(native_reflection_map,nwn_sample_uv,clamp(nwn_roughness*30.0-1.0,0.0,10.0)).rgb;
+#else
+ vec3 nwn_sample_environment=nwn_sample_scene_environment(VIEW,NORMAL,mat3(INV_VIEW_MATRIX),nwn_sample_uv,clamp(nwn_roughness*30.0-1.0,0.0,10.0));
+#endif
  nwn_environment_rgb=sign(nwn_sample_environment)*pow(abs(nwn_sample_environment),vec3(2.2));
 """

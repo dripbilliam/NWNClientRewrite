@@ -30,10 +30,10 @@ func appearance(object: Dictionary) -> Dictionary:
 func number(value: Variant, fallback: float=1.0) -> float:
 	var text:=str(value)
 	return float(text) if text.is_valid_float() and is_finite(float(text)) else fallback
-func append_tail_wings(result: Dictionary, a: Dictionary, cloak_row: Dictionary, original: Dictionary, tables: Dictionary, colors: Array) -> void:
-	for pair in [["fieldAA4","tailmodel","tail",253,"HIDETAIL"],["fieldAA8","wingmodel","wings",252,"HIDEWING"]]:
+func append_tail_wings(result: Dictionary, a: Dictionary, original: Dictionary, tables: Dictionary, colors: Array) -> void:
+	for pair in [["fieldAA4","tailmodel","tail",253],["fieldAA8","wingmodel","wings",252]]:
 		var id:=int(a.get(pair[0],0))
-		if id==0 or number(cloak_row.get(pair[4],"0"),0)!=0: continue
+		if id==0: continue
 		var original_part:=row(tables,pair[1],id)
 		if original_part.is_empty(): warnings.append("Original "+pair[1]+" row is unavailable: "+str(id)); continue
 		var name:=str(original_part.get("MODEL","")).to_lower().left(16)
@@ -51,7 +51,7 @@ func plan(object: Dictionary, tables: Dictionary) -> Dictionary:
 	var a: Dictionary=object.appearance; var cloak: Dictionary=equipped(object,64).get("item",{})
 	var cloak_parts: Array=cloak.get("parts",[]); var cloak_row:=row(tables,"cloakmodel",int(cloak_parts[0])) if not cloak_parts.is_empty() else {}
 	if str(original.get("MODELTYPE",""))!="P":
-		append_tail_wings(result,a,cloak_row,original,tables,colors)
+		append_tail_wings(result,a,original,tables,colors)
 		return result
 	var gender:=str(row(tables,"gender",int(data.Gender)).get("GENDER","")).to_lower()
 	if gender.is_empty() or gender=="****" or row(tables,"racialtypes",int(data.Race)).is_empty(): failure="Original creature race/gender rules are unavailable"; return {}
@@ -82,7 +82,7 @@ func plan(object: Dictionary, tables: Dictionary) -> Dictionary:
 			for channel in mini(CHANNELS.size(),per_part[index].size()):
 				var value:=int(per_part[index][channel])
 				if value!=255: palette[CHANNELS[channel]]=value
-		var part:={"model":(str(result.model)+suffix).left(16),"fallbackModel":(str(result.fallbackModel)+suffix).left(16),"pltCandidates":candidates(result.model,result.fallbackModel,gender,pheno,suffix),"node":null if index==18 else anchor,"partIndex":index,"paletteColors":palette}
+		var part:={"model":(str(result.model)+suffix).left(16),"fallbackModel":(str(result.fallbackModel)+suffix).left(16),"pltCandidates":candidates(result.model,result.fallbackModel,gender,pheno,suffix),"node":null if index==18 else anchor,"partIndex":index,"paletteColors":palette,"metalPalette":"pal_armor01"}
 		if index==18: part.nativeVisualScope=18
 		result.parts.append(part)
 	var cloak_model:=int(cloak_row.get("MODEL",0))
@@ -93,8 +93,14 @@ func plan(object: Dictionary, tables: Dictionary) -> Dictionary:
 		var item_colors: Array=cloak.get("colors",[])
 		if item_colors.size()==6:
 			for channel in MATERIALS.size(): cloak_palette[CHANNELS[channel]]=int(item_colors[channel])
-		result.attachments.append({"model":(str(result.model)+cloak_suffix).left(16),"fallbackModel":(str(result.fallbackModel)+cloak_suffix).left(16),"node":"","nativeVisualScope":243,"paletteColors":cloak_palette,"pltCandidates":["cloak_"+str(cloak_texture).pad_zeros(3)] if cloak_texture>0 else []})
-	append_tail_wings(result,a,cloak_row,original,tables,colors)
+		# Stock passes DEFAULT when ENVMAP is missing. The literal NULL clears it.
+		var environment_map:=str(cloak_row.get("ENVMAP","default")).strip_edges().to_lower().left(16)
+		if environment_map in ["","****"]: environment_map="default"
+		var hidden_scopes: Array[int]=[]
+		for rule in [["HIDESHOR",14],["HIDESHOL",15],["HIDEWING",252],["HIDETAIL",253]]:
+			if int(number(cloak_row.get(rule[0],"0"),0))!=0: hidden_scopes.append(rule[1])
+		result.attachments.append({"model":(str(result.model)+cloak_suffix).left(16),"fallbackModel":(str(result.fallbackModel)+cloak_suffix).left(16),"node":"","nativeVisualScope":243,"paletteColors":cloak_palette,"metalPalette":"pal_armor01","reflectionAlpha":environment_map!="null","reflectionMap":environment_map,"pltCandidates":["cloak_"+str(cloak_texture).pad_zeros(3)] if cloak_texture>0 else [],"hiddenScopes":hidden_scopes})
+	append_tail_wings(result,a,original,tables,colors)
 	return result
 func candidates(primary: String, fallback: String, gender: String, pheno: String, suffix: String) -> Array:
 	var output: Array=[]

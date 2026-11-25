@@ -50,6 +50,22 @@ func run() -> void:
 	check(value.conversion.native_pixels==33*7 and value.conversion.gd_pixels==0,"Actual prepare uses compiled PLT pixel conversion")
 	var warmed:=candidate.prepare(catalog,"authored",rows)
 	check(warmed.palette_decodes==0 and same(value.value,warmed.value),"Warm shared palettes perform no second source decode")
+	var two_metals:=plt(2,1)
+	two_metals[24]=12; two_metals[25]=2
+	two_metals[26]=12; two_metals[27]=3
+	write(folder.path_join("two_metals.plt"),two_metals)
+	var metal_catalog:=Catalog.new(); metal_catalog.mount_directory(folder)
+	var dye_rows:=[0,0,1,3]
+	var worn_path:=folder.path_join("prepared")
+	var worn:=Palette.new().prepare(metal_catalog,"two_metals",dye_rows,worn_path,"pal_armor01")
+	var icons:=Palette.new().prepare(metal_catalog,"two_metals",dye_rows,worn_path,"pal_armor02")
+	var metal1: PackedByteArray=Palette.new().parse_palette(unique.pal_armor01).value.mips[0].data
+	var metal2: PackedByteArray=Palette.new().parse_palette(unique.pal_armor02).value.mips[0].data
+	var unflipped: PackedByteArray=Raster.new().parse(unique.pal_armor01,3).mips[0].data
+	check(metal1==unflipped.slice(3072,4096)+unflipped.slice(2048,3072)+unflipped.slice(1024,2048)+unflipped.slice(0,1024),"AurSetPalette reverses the decoded file rows before color lookup")
+	check(worn.get("error","x").is_empty() and worn.get("value",{}).get("mips",[{"data":PackedByteArray()}])[0].data==metal1.slice(1072,1076)+metal1.slice(3120,3124),"Stock worn layers use two independent rows from armor01, preserving RGBA")
+	check(icons.get("error","x").is_empty() and icons.get("value",{}).get("mips",[{"data":PackedByteArray()}])[0].data==metal2.slice(1072,1076)+metal2.slice(3120,3124),"Stock item icons keep both metal layers on armor02")
+	check(worn.get("sha256")==Palette.new().prepare(metal_catalog,"two_metals",dye_rows,worn_path,"pal_armor01").get("sha256") and worn.get("sha256")!=icons.get("sha256"),"Worn and icon textures keep distinct stable cache identities")
 	# Fresh full prepare calls, not just direct store probes, share every source.
 	catalog=Catalog.new(); catalog.mount_directory(folder); var threads: Array=[]
 	for index in 4:
@@ -62,7 +78,13 @@ func run() -> void:
 	check(total==unique.size() and catalog.preparation_cache().snapshot().inflight==0,"Full prepare decodes each unique palette once across four callers")
 	await coalesced_case(unique.values()[0],true)
 	await coalesced_case(PackedByteArray([1,2,3]),false)
-	var cache_folder:=folder.path_join("prepared"); var first:=Palette.new().prepare(catalog,"authored",rows,cache_folder); var second:=Palette.new().prepare(catalog,"authored",rows,cache_folder)
+	var cache_folder:=folder.path_join("prepared")
+	var previous:=Cache.new()
+	var old_identity:=Cache.digest(var_to_bytes(["plt-original-1",Cache.digest(raw),value.palette_dependencies,rows]))
+	var old_key:=Cache.key(old_identity,"plt-original")
+	check(previous.configure(cache_folder) and previous.save_data(old_key,old_identity,"plt-original",{"stale":true}),"Old row-order cache exists before the corrected bake")
+	var first:=Palette.new().prepare(catalog,"authored",rows,cache_folder); var second:=Palette.new().prepare(catalog,"authored",rows,cache_folder)
+	check(first.sha256!=old_identity and same(first.value,expected.value) and previous.load_data(old_key,old_identity,"plt-original").get("stale",false),"Corrected bake bypasses the stale cached pixels")
 	check(not first.cache_hit and second.cache_hit and same(first.value,second.value),"Verified persistent baked-pixel cache reloads exact output")
 	var recolored: Array=rows.duplicate(); recolored[8]=3
 	var changed:=Palette.new().prepare(catalog,"authored",recolored,cache_folder)
