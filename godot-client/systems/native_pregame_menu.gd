@@ -11,6 +11,7 @@ const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/entry_menu_layout.gd")
 const Page=preload("res://systems/native_entry_menu_frame.gd")
+const Splash=preload("res://systems/native_startup_splash.gd")
 var loader
 var catalog
 var painter
@@ -23,6 +24,7 @@ var main
 var options
 var status: Label
 var icon_loading_bar: ProgressBar
+var startup_splash: Control
 var sources: Dictionary={}
 var cache_path:=""
 var layout_path:=""
@@ -45,6 +47,10 @@ func configure(source: Dictionary,cache: String,layout: String,settings) -> void
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter=Control.MOUSE_FILTER_IGNORE; hide()
 	status=Label.new(); add_child(status); status.text="Preparing menu resources…"; status.position=Vector2(24,24); status.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	icon_loading_bar=ProgressBar.new(); add_child(icon_loading_bar); icon_loading_bar.position=Vector2(24,54); icon_loading_bar.custom_minimum_size=Vector2(320,18); icon_loading_bar.size=Vector2(320,18); icon_loading_bar.show_percentage=false; icon_loading_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE; icon_loading_bar.hide()
+	if Splash.enabled(str(sources.get("profileDirectory",""))):
+		startup_splash=Splash.new()
+		add_child(startup_splash)
+		startup_splash.admission_changed.connect(refresh)
 	loader=Loader.new(); add_child(loader); loader.completed.connect(catalog_ready); loader.start(sources)
 	get_viewport().size_changed.connect(place)
 func _process(_delta: float) -> void:
@@ -71,11 +77,14 @@ func catalog_ready(_serial: int,value: RefCounted,error: String,stats: Dictionar
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(table_ready); assets.request("keymap",2017,"2da")
 	main=Page.new(); add_child(main); main.configure(painter,text,catalog,cache_path,"pre_main"); main.action_requested.connect(main_action); main.prepared.connect(refresh); main.start()
 	main.artwork_ready.connect(refresh)
+	main.button_sound_requested.connect(button_sound_requested.emit)
 	options=Page.new(); add_child(options); options.configure(painter,text,catalog,cache_path,"options_pregame"); options.action_requested.connect(options_action); options.prepared.connect(refresh); options.start()
 	options.artwork_ready.connect(refresh)
+	options.button_sound_requested.connect(button_sound_requested.emit)
 	keys=preload("res://systems/native_key_settings.gd").new(); add_child(keys); keys.configure(painter,text,catalog,cache_path,bindings,layout_path); keys.prepared.connect(refresh); keys.artwork_ready.connect(refresh); keys.finished.connect(return_options)
 	if is_instance_valid(window_settings):
 		video=preload("res://systems/native_video_options.gd").new(); add_child(video); video.configure(painter,text,catalog,cache_path,window_settings,layout_path); video.prepared.connect(refresh); video.artwork_ready.connect(refresh); video.finished.connect(return_options)
+	if is_instance_valid(startup_splash): startup_splash.prepare(painter)
 	refresh()
 func menu_startup_status() -> Dictionary:
 	if bool(startup_status_cache.get("ready",false)): return startup_status_cache
@@ -102,12 +111,15 @@ func table_ready(_id: int,result: Dictionary) -> void:
 func scope() -> Array: return ["pregame",revision]
 func open() -> void:
 	if closed: return
-	revision+=1; wanted=true; page="main"; external_child=false; show(); set_process(not bool(startup_status_cache.get("ready",false))); refresh(); move_to_front()
+	revision+=1; wanted=true; page="main"; external_child=false; show(); set_process(not bool(startup_status_cache.get("ready",false)))
+	if is_instance_valid(startup_splash): startup_splash.open_once()
+	refresh(); move_to_front()
 func set_button_audio_status(ready: bool,reason: String="") -> void:
 	if closed:return
 	button_audio_ready=ready;button_audio_failure=reason;refresh()
 func dismiss() -> void:
 	wanted=false; external_child=false; revision+=1
+	if is_instance_valid(startup_splash): startup_splash.finish()
 	set_process(false)
 	for view in [main,options]:
 		if is_instance_valid(view): view.dismiss()
@@ -138,7 +150,8 @@ func refresh() -> void:
 		main.set_context(scope(),state.enabled,state.colors)
 		for tag in main.buttons:
 			if tag not in ["multibutton","optionsbutton","exitbutton"]: main.buttons[tag].tooltip_text="Unavailable in this client build."
-		main.visible=wanted and page=="main" and bool(menu_status.get("ready",false)) and (button_audio_ready or not button_audio_failure.is_empty())
+		var splash_covered: bool=is_instance_valid(startup_splash) and startup_splash.covers_menu()
+		main.visible=wanted and page=="main" and not splash_covered and bool(menu_status.get("ready",false)) and (button_audio_ready or not button_audio_failure.is_empty())
 	if is_instance_valid(options):
 		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.art_ready(),"controlbutton":is_instance_valid(keys) and keys.art_ready() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
 		if options.buttons.has("nwsyncbutton"): options.buttons.nwsyncbutton.tooltip_text="Storage management is not available in this client build."
@@ -151,16 +164,14 @@ func place() -> void:
 		if is_instance_valid(view) and view.layout_ready: view.position=((get_viewport_rect().size-view.size)*0.5).max(Vector2.ZERO)
 func main_action(tag: String) -> void:
 	if closed or not wanted or page!="main" or not button_audio_ready and button_audio_failure.is_empty(): return
-	if tag in ["optionsbutton","multibutton","exitbutton"]: button_sound_requested.emit()
 	match tag:
 		"optionsbutton": revision+=1; page="options"; main.dismiss(); refresh()
 		"multibutton": dismiss(); multiplayer_requested.emit()
 		"exitbutton": dismiss(); exit_requested.emit()
-func options_action(tag: String,from_button: bool=true) -> void:
+func options_action(tag: String,_from_button: bool=true) -> void:
 	if closed or not wanted or page!="options" or not button_audio_ready and button_audio_failure.is_empty(): return
 	if tag=="videooptsbutton" and (not is_instance_valid(video) or not video.art_ready()): return
 	if tag=="controlbutton" and (not is_instance_valid(keys) or not keys.art_ready()): return
-	if from_button and tag in ["closebutton","xbutton","gamebutton","videooptsbutton","controlbutton"]: button_sound_requested.emit()
 	match tag:
 		"closebutton","xbutton": revision+=1; page="main"; options.dismiss(); refresh()
 		"gamebutton": external_child=true; page="client-settings"; options.dismiss(); refresh(); client_settings_requested.emit()
@@ -174,6 +185,9 @@ func child_closed() -> bool:
 	return_options(); return true
 func escape() -> bool:
 	if closed or not wanted: return false
+	if is_instance_valid(startup_splash) and (startup_splash.visible or startup_splash.covers_menu()):
+		startup_splash.finish()
+		return true
 	if page=="keys": keys.finish_page(false)
 	elif page=="video": video.finish_page()
 	elif page=="options": options_action("closebutton",false)

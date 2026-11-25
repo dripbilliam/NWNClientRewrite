@@ -109,7 +109,7 @@ func _ready() -> void:
 	filter_button=_button("Filters…",open_filters); buttons.add_child(filter_button); filter_button.hide()
 	panel.hide(); get_viewport().size_changed.connect(place)
 
-func configure_native(painter,text,catalog,cache_path: String) -> void:
+func configure_native(painter,text,catalog,cache_path: String,button_sound: Callable=Callable()) -> void:
 	if is_instance_valid(direct_dialog): return
 	direct_dialog=load("res://systems/native_direct_connect.gd").new(); panel.get_parent().add_child(direct_dialog)
 	direct_dialog.configure(painter,text,catalog,cache_path); direct_dialog.confirmed.connect(confirm_direct); direct_dialog.canceled.connect(return_direct)
@@ -124,7 +124,9 @@ func configure_native(painter,text,catalog,cache_path: String) -> void:
 		if wanted and state.get("kind","")=="browser-view": receive(state))
 	profile_dialog.external_notice_closed.connect(refresh_entry)
 	profile_button.show(); profile_button.disabled=true
-	entry_menu=load("res://systems/native_entry_menu_frame.gd").new(); panel.get_parent().add_child(entry_menu); entry_menu.configure(painter,text,catalog,cache_path,"pre_multiplayer"); entry_menu.action_requested.connect(entry_action); entry_menu.prepared.connect(refresh_entry); entry_menu.artwork_ready.connect(refresh_entry); entry_menu.start()
+	entry_menu=load("res://systems/native_entry_menu_frame.gd").new(); panel.get_parent().add_child(entry_menu); entry_menu.configure(painter,text,catalog,cache_path,"pre_multiplayer"); entry_menu.action_requested.connect(entry_action); entry_menu.prepared.connect(refresh_entry); entry_menu.artwork_ready.connect(refresh_entry)
+	if button_sound.is_valid(): entry_menu.button_sound_requested.connect(button_sound)
+	entry_menu.start()
 	filter_dialog=load("res://systems/native_server_filters.gd").new(); panel.get_parent().add_child(filter_dialog); filter_dialog.configure(painter,text,catalog,cache_path)
 	filter_dialog.filters_confirmed.connect(confirm_filters); filter_dialog.canceled.connect(refresh_entry); filter_dialog.prepared.connect(func():
 		if wanted and state.get("kind","")=="browser-view": receive(state))

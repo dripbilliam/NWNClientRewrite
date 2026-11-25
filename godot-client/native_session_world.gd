@@ -377,7 +377,7 @@ func run() -> void:
 	server_browser.login_profiles_requested.connect(open_login_profiles)
 	render_settings.login_profiles_requested.connect(open_login_profiles)
 	render_settings.chat_settings_requested.connect(open_chat_settings)
-	if is_instance_valid(render_menu.pregame): render_menu.pregame.source_ready.connect(server_browser.configure_native)
+	if is_instance_valid(render_menu.pregame): render_menu.pregame.source_ready.connect(server_browser.configure_native.bind(render_menu.play_menu_click))
 	character_lobby=Lobby.new(); host.add_child(character_lobby)
 	character_lobby.local_catalog.configure(ticket.get("localCharacterRoots",[]))
 	character_lobby.preferences.open_file(str(args.get("lobby-preferences","user://native-character-lobby.cfg")))

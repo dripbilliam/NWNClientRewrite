@@ -157,6 +157,7 @@ func configure_native(shared_frame,text,catalog,cache_path: String,value: Array)
 	native_frame.prepared.connect(func():update_native(); place())
 	native_frame.artwork_ready.connect(func():update_native(); place())
 	native_frame.action_requested.connect(native_action)
+	native_frame.button_sound_requested.connect(play_menu_click)
 	native_frame.title_input.connect(drag_title)
 	native_frame.start(); configure_client_style(shared_frame)
 	if is_instance_valid(window_settings):
@@ -235,6 +236,7 @@ func native_configuration_step(state: Dictionary) -> Dictionary:
 			if not native_configuration_current(state):return {"done":true,"accepted":false}
 			native_frame.prepared.connect(func():update_native();place());native_frame.artwork_ready.connect(func():update_native();place())
 			native_frame.action_requested.connect(native_action);native_frame.title_input.connect(drag_title)
+			native_frame.button_sound_requested.connect(play_menu_click)
 		10:native_frame.start()
 		11:
 			configure_client_style(state.frame,true)
@@ -321,7 +323,6 @@ func update_native() -> void:
 func native_action(tag: String) -> void:
 	if tag=="videooptionsbutton" and (not is_instance_valid(video_owner) or not video_owner.art_ready()): return
 	if tag=="controlsbutton" and (not is_instance_valid(key_owner) or not key_owner.art_ready()): return
-	if tag in ["resumegamebutton","xbutton","gamebutton","videooptionsbutton","controlsbutton","savecharbutton","exitbutton","exit-confirmed"]:play_menu_click()
 	match tag:
 		"resumegamebutton","xbutton": dismiss()
 		"gamebutton":

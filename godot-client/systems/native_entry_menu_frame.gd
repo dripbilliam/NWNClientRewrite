@@ -4,6 +4,7 @@ extends Control
 signal prepared
 signal artwork_ready
 signal action_requested(tag: String)
+signal button_sound_requested
 signal title_input(event: InputEvent)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/entry_menu_layout.gd")
@@ -88,7 +89,7 @@ func build() -> void:
 		if entry.get("model_deleted_after_init",false): continue
 		var button: Button=frame.create_button(entry,stage,models); buttons[tag]=button
 		var caption: Label=frame.button_caption(button,caption_text(entry)); captions[tag]=caption
-		button.button_down.connect(func():held[tag]={"scope":scope.duplicate(),"revision":revision})
+		button.button_down.connect(button_down.bind(tag))
 		button.pressed.connect(func():invoke(tag))
 	for tag in Plan.MENUS[kind].labels:
 		var entry: Dictionary=definition.entries[tag]; var label: Label=frame.create_label(entry,stage); label.text=build_text if entry.get("runtime_text_kind","")=="build-version" else caption_text(entry)
@@ -100,7 +101,7 @@ func build() -> void:
 	for pair in [["okbutton",0x2052],["cancelbutton",0x2053]]:
 		var button: Button=frame.create_button(confirm_definition.entries[pair[0]],confirmation,models); frame.button_caption(button,text_owner.raw({"strRef":pair[1]})); confirm_buttons[pair[0]]=button
 		var confirm_tag: String=pair[0]
-		button.button_down.connect(func():held["@"+confirm_tag]={"scope":scope.duplicate(),"revision":revision})
+		button.button_down.connect(confirmation_down.bind(confirm_tag))
 		button.pressed.connect(confirm_result.bind(confirm_tag=="okbutton"))
 	confirmation.hide()
 	set_modal_order(modal_order,modal_surfaces,modal_canvas,menu_admission)
@@ -118,8 +119,14 @@ func refresh() -> void:
 	for tag in buttons:
 		var button: Button=buttons[tag]; button.disabled=not bool(enabled.get(tag,false))
 		captions[tag].add_theme_color_override("font_color",colors.get(tag,Color(0.5,0.5,0.5,1) if button.disabled else Color.WHITE))
+func button_admitted(tag: String) -> bool:
+	return not closed and layout_ready and is_visible_in_tree() and menu_admitted() and buttons.has(tag) and not buttons[tag].disabled
+func button_down(tag: String) -> void:
+	if not button_admitted(tag): return
+	held[tag]={"scope":scope.duplicate(),"revision":revision}
+	button_sound_requested.emit()
 func invoke(tag: String) -> void:
-	if closed or not layout_ready or not is_visible_in_tree() or not menu_admitted() or not buttons.has(tag) or buttons[tag].disabled: return
+	if not button_admitted(tag): return
 	var capture: Dictionary=held.get(tag,{"scope":scope,"revision":revision}); held.erase(tag)
 	if int(capture.revision)!=revision or capture.scope!=scope: return
 	action_requested.emit(tag)
@@ -147,12 +154,19 @@ func cancel_confirmation() -> bool:
 	if is_instance_valid(stage): stage.show()
 	return was_open
 func confirm_result(accepted: bool) -> void:
-	if closed or not is_instance_valid(confirmation) or not confirmation.is_visible_in_tree() or not confirmation_lease.admits(): return
+	if not confirmation_admitted(): return
 	var tag: String="@okbutton" if accepted else "@cancelbutton"
 	var press: Dictionary=held.get(tag,confirm_capture); held.erase(tag)
 	var valid: bool=confirm_capture.get("scope",[])==scope and int(confirm_capture.get("revision",-1))==revision and press.get("scope",[])==scope and int(press.get("revision",-1))==revision and bool(enabled.get("exitbutton",false))
 	cancel_confirmation()
 	if accepted and valid: action_requested.emit("exit-confirmed")
+func confirmation_admitted() -> bool:
+	return not closed and is_instance_valid(confirmation) and confirmation.is_visible_in_tree() and confirmation_lease.admits()
+func confirmation_down(tag: String) -> void:
+	if not confirmation_admitted() or not confirm_buttons.has(tag) or confirm_buttons[tag].disabled: return
+	if confirm_capture.get("scope",[])!=scope or int(confirm_capture.get("revision",-1))!=revision or not bool(enabled.get("exitbutton",false)): return
+	held["@"+tag]={"scope":scope.duplicate(),"revision":revision}
+	button_sound_requested.emit()
 func cohort_snapshot() -> Dictionary:
 	# This is the constructed page plus okcancelpanel cohort, including the
 	# hidden confirmation. Dynamic child pages have separate gates.
