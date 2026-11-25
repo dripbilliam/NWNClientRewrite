@@ -1,6 +1,7 @@
 extends Node3D
 const NativeSurface=preload("res://systems/native_data/tile_surface.gd")
 const NameplateAnchor=preload("res://systems/native_data/nameplate_anchor.gd")
+const TransitionTargets=preload("res://systems/native_render/transition_targets.gd")
 const WALK_LAYER:=1
 const TARGET_LAYER:=2
 
@@ -303,9 +304,11 @@ func _mark_mesh_overlays(ids: Array) -> void:
 	for id in legacy_marked:
 		if not desired.has(id):
 			for mesh in parts.get(id, []):
-				mesh.material_overlay = original_overlays.get(mesh)
+				if original_overlays.has(mesh): mesh.material_overlay = original_overlays[mesh]
 	for id in desired:
-		if legacy_marked.has(id):
+		# The portal's pick mesh stays invisible. Keep logical mark membership
+		# while leaving its blue hover projection to the transition owner.
+		if legacy_marked.has(id) or native_owners.get(id) is TransitionTargets.Target:
 			continue
 		if not overlays.has(id):
 			var material := StandardMaterial3D.new()
