@@ -3,6 +3,8 @@ const Ssf=preload("res://systems/native_data/sound_set.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const NativeEntry=preload("res://native_live_world.gd") # Compile actual delivery; do not start its protocol connection.
 const LiveWorld=preload("res://systems/native_render/live_world.gd")
+const EffectAudio=preload("res://systems/native_render/effect_audio.gd")
+const VoiceWorld=preload("res://systems/native_render/creature_voice_world.gd")
 class MemoryCatalog extends RefCounted:
 	var source
 	var authored: Dictionary={}
@@ -15,6 +17,107 @@ class MemoryCatalog extends RefCounted:
 		failure=""; var key:=name.to_lower()+":"+str(type)
 		if authored.has(key): return authored[key]
 		var bytes: PackedByteArray=source.get_resource(name,type); failure=source.failure; return bytes
+class WaveRequest extends RefCounted:
+	var count := 0
+
+	func request(name: String, type: int, decoder: String) -> int:
+		assert(name == "voicefixture" and type == 4 and decoder == "wave-native-v1")
+		count += 1
+		return count
+
+class SilentVoiceAudio extends EffectAudio:
+	var starts: Array[int] = []
+
+	func _listener() -> void:
+		# Keep the authored listener for this one frame.
+		pass
+
+	func _tick(row: Dictionary) -> void:
+		# Record eligible player starts without creating a playback object.
+		var resource: Dictionary = resources.get(row.resourceId, {})
+		if not row.requested or resource.get("stream") == null or resource.failed or starts.has(row.id):
+			return
+		if row.profile.positional and (listener_state.is_empty() or int(resource.metadata.channels) != 1 or State.distance(listener_state.position, row.position) > float(row.profile.maxDistance)):
+			return
+		starts.append(row.id)
+
+func silent_lifetime_case(kind: String) -> Dictionary:
+	var id := 0x80000002
+	var world := LiveWorld.new()
+	world.area_id = 5
+	var catalog := MemoryCatalog.new()
+	catalog.authored = {"voicefixture:4": tone()}
+	world.catalog = catalog
+	world.combat = preload("res://systems/native_render/combat_presentation.gd").new()
+	world.add_child(world.combat)
+	var owner := Effects.new()
+	world.effects = owner
+	world.add_child(owner)
+	owner.world = world
+	owner.client = owner
+	owner.world_scope = {"ticket": world.generation}
+	owner.tables = {"appearance": {"orderedRows": [{"SIZECATEGORY": "4"}]}}
+	owner.assets = WaveRequest.new()
+	var voices := VoiceWorld.new()
+	owner.creature_voices = voices
+	voices.manager = owner
+	voices.table = {"orderedRows": [{"RESREF": "fixture"}]}
+	voices.sets = {"fixture": {"data": {"count": 1, "entries": [{"resRef": "voicefixture"}]}, "error": "", "last": 0}}
+	var audio := SilentVoiceAudio.new()
+	owner.world_audio = audio
+	owner.add_child(audio)
+	audio.configure(owner)
+	check(audio.process_priority == 110, kind + ": audio retains its normal downstream frame phase")
+	audio.listener_state = {"position": [2.0, 3.0, 1.0]}
+	var actor := {"id": id, "objectType": 5, "areaId": 5, "nativeLifetime": 1, "appearance": {"appearance": 0, "field8A0": 0}, "replicated": {"position": [2.0, 3.0, 1.0], "orientation": [1.0, 0.0, 0.0]}}
+	world.receive_delta([actor], [], id)
+	voices.receive_raw({"serial": 1, "events": [{"objectId": id, "voiceCode": 0, "lifetime": 1, "soundsetId": 0}]})
+	voices.advance()
+	var actor_sound := int(voices.records[id].sound)
+	var fixed_sound := audio.one_shot("voicefixture", [2.0, 3.0, 1.0])
+	check(owner.assets.count == 1 and audio.starts.is_empty(), kind + ": both sources wait for one shared wave request")
+	match kind:
+		"removed": world.receive_delta([], [id], -1)
+		"replaced":
+			var replacement := actor.duplicate(true)
+			replacement.nativeLifetime = 2
+			world.receive_delta([replacement], [], id)
+		"area-closed": world.begin_retirement()
+	var pcm := PackedByteArray()
+	pcm.resize(320)
+	# Asset callbacks run before the effect phase validates actor ownership.
+	owner.prepared(1, {"error": "", "bytes": pcm, "value": {"codec": "pcm16", "channels": 1, "sampleRate": 8000, "frames": 160, "pcm": pcm, "timing": {}}})
+	var early_starts := audio.starts.duplicate()
+	voices.advance()
+	audio._process(0.0)
+	match kind:
+		"removed", "replaced":
+			check(not audio.voices.has(actor_sound) and not voices.records.has(id), kind + ": retired voice owner is released")
+			check(audio.starts == [fixed_sound], kind + ": only the fixed-origin sound starts")
+		"unchanged":
+			check(audio.starts == [actor_sound, fixed_sound], kind + ": both eligible sounds start by the normal audio tick")
+			check(early_starts.is_empty(), kind + ": asset completion waits for the audio tick")
+		"area-closed":
+			check(audio.starts.is_empty() and audio.voices.is_empty(), kind + ": area retirement prevents both starts")
+			check(audio.stats.imports == 0, kind + ": late callback cannot refill a closed resource cache")
+	var result := {"atCompletion": early_starts, "byAudioTick": audio.starts.duplicate(), "actorVoice": actor_sound, "fixedSound": fixed_sound}
+	voices.close()
+	audio.close()
+	world.combat.close()
+	world.free()
+	return result
+
+func run_silent_lifetimes(output: String) -> void:
+	var cases := {}
+	for kind in ["removed", "replaced", "unchanged", "area-closed"]:
+		cases[kind] = silent_lifetime_case(kind)
+	check(cases.values().all(func(value): return value is Dictionary and not value.is_empty()), "All silent lifetime cases completed")
+	var file := FileAccess.open(output, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"success": failures.is_empty(), "checks": checks, "failures": failures, "cases": cases}, "\t"))
+	file.close()
+	print("NATIVE_CREATURE_VOICE_LIFETIME ", checks, " checks, ", failures.size(), " failures")
+	quit(0 if failures.is_empty() else 1)
+
 func sound_set(entries: Array) -> PackedByteArray:
 	var bytes:=PackedByteArray(); bytes.resize(40+entries.size()*4+entries.size()*20); bytes.fill(0)
 	for i in 8: bytes[i]="SSF V1.0".unicode_at(i)
@@ -52,6 +155,9 @@ func run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--report="): output=arg.substr(9)
 	if output.is_empty() or FileAccess.file_exists(output): quit(2); return
+	if OS.get_cmdline_user_args().has("--silent-lifetimes"):
+		run_silent_lifetimes(output)
+		return
 	var original:=Catalog.new(); check(original.mount_install(ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall")),"Original native audio mounts read-only")
 	var chosen:=original_voice(original)
 	check(not chosen.is_empty(),"An actual original SSF names an installed BMU voice")

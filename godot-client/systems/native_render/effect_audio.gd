@@ -15,6 +15,6 @@ func resource_ready(id: int,result: Dictionary) -> void:
 	if stream==null or stream.get_length()<=0: _fail_resource(row); return
 	row.stream=stream; row.metadata={"channels":int(data.channels),"sampleRate":int(data.sampleRate),"frames":int(data.frames) if data.get("frames") is int else roundi(stream.get_length()*int(data.sampleRate)),"bytes":bytes.size(),"codec":data.codec,"timing":data.timing}; row.bytes=bytes.size()
 	cache_bytes+=bytes.size(); stats.imports+=1
-	for voice in voices.values():
-		if voice.resourceId==id: _tick(voice)
+	# The effect phase validates actor lifetimes before the audio tick starts
+	# waiting sounds. Asset completion publishes only the decoded resource.
 	_trim()
