@@ -3,7 +3,6 @@ const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const Service=preload("res://systems/native_item_icon_scene_service.gd")
 const Host=preload("res://systems/native_item_icon_panel_host.gd")
-const ItemSources=preload("res://systems/native_data/item_icon_sources.gd")
 var replies: Dictionary={}
 var checks:=0
 var failures: Array=[]
@@ -138,6 +137,12 @@ func run() -> void:
 		var initial:=tga(16,true)
 		var file:=FileAccess.open(path,FileAccess.WRITE); file.store_buffer(initial); file.close()
 		check(catalog.mount_directory(folder,200000000,[3]),"Loose icon source overrides installed resource")
+		# Exercise the normal on-demand source store before refreshing the mount.
+		var original_epoch: int=catalog.source_store.get_instance_id()
+		check(catalog.get_resource(name,3)==initial,"Catalog reads the selected loose replacement")
+		var reads_after_first: int=catalog.stats.reads
+		var hits_after_first: int=catalog.stats.source_memory_hits
+		check(catalog.get_resource(name,3)==initial and int(catalog.stats.reads)==reads_after_first and int(catalog.stats.source_memory_hits)>hits_after_first,"Catalog reuses resident bytes for the same loose replacement")
 		var first_key: String=service.request(flat.item,tables,int(flat.gender))
 		var first_reply: Dictionary=await wait_key(service,first_key)
 		check(str(first_reply.error).is_empty(),"First loose replacement prepared")
@@ -148,14 +153,10 @@ func run() -> void:
 		check(host.configure(service.pool) and host.bind_slot("item",first_key,before_bundle,Vector2(40,40)),"Panel holds first replacement model")
 		var original_texture: Texture2D=material_texture(host.slots.item.model.meshes[0].material_override)
 		check(original_texture!=null and original_texture.get_width()==16,"Open panel uses first replacement texture")
-		# Startup source preloading keys bytes by mount binding identity. Simulate
-		# that normal production residency before editing this same loose file.
-		var found: Dictionary=catalog.location(name,3)
-		var source_key:=ItemSources.source_key(name,3,ItemSources.binding_identity(catalog,found))
-		ItemSources.mutex.lock(); ItemSources.names[name+":3"]=true; ItemSources.payloads[source_key]=initial; ItemSources.loose_current[str(found.layer.binding_identity)+":"+name+":3"]=source_key; ItemSources.bytes+=initial.size(); ItemSources.mutex.unlock()
 		var updated:=tga(17,false)
 		file=FileAccess.open(path,FileAccess.WRITE); file.store_buffer(updated); file.close()
 		catalog.invalidate()
+		check(catalog.source_store.get_instance_id()!=original_epoch and catalog.get_resource(name,3)==updated,"Catalog invalidation selects updated bytes from the same mounted file")
 		var second_key: String=service.request(flat.item,tables,int(flat.gender))
 		check(second_key!=first_key and not second_key.is_empty(),"Same mounted loose source change invalidates retained key")
 		var second_reply: Dictionary=await wait_key(service,second_key)
