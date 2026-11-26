@@ -102,6 +102,10 @@ func _pointer_step(delta: float) -> void:
 				else:
 					hud.inspect_entity(selected)
 			pending_button = 0
+	elif hovered >= 0 and not registry.entities.has(hovered):
+		# A received retirement can invalidate the cached hit between picks.
+		hovered = -1
+		last_hit.clear()
 	var selection_hover:=hovered
 	if hover_presentation.is_valid():
 		var presentation: Variant=hover_presentation.call(last_hit,blocked)
