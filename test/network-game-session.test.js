@@ -190,6 +190,43 @@ test('item powers send native requests for the controlled inventory and preserve
  for(const change of [{areaGeneration:1},{areaId:2},{itemId:123},{propertyIndex:256},{targetId:123},{position:[0,NaN,0]}])await assert.rejects(s.useItem({...r,...change}));item.inventoryLocation.ownerId=123;await assert.rejects(s.useItem(r),/source/);assert.equal(h.sent.length,1);await s.disconnect();await assert.rejects(s.useItem(r),/not ready/);
 });
 
+test('item powers cannot use a grounded source through a stale shortcut',async()=>{
+ const h=harness(),session=h.session,areaId=7,areaGeneration=1,actorId=0x80000001,itemId=0x80000002;
+ Object.assign(session,{phase:'playing',areaReadySent:true,areaGeneration});
+ const world=session.world;
+ world.areaId=areaId;world.localObjectId=actorId;
+ world.registry.addObjectAtPos(actorId,{id:actorId,objectType:5,areaId,replicated:{position:[1,2,0]}});
+ const item={baseItem:0,properties:[{type:15,remaining:1}]};
+ const disclose={action:'inventory',channel:'R',operation:'A',id:itemId,x:0,y:0,item};
+ await h.deliver({kind:'object-updates',records:[disclose],complete:true});
+ world.quickbar[0]={type:1,itemId};
+ const request={areaId,areaGeneration,itemId,propertyIndex:0,targetId:actorId,position:[0,0,0]};
+ await session.useItem(request);
+ assert.deepEqual(h.sent[0],[...itemUseRequest(request)]);
+
+ await h.deliver({kind:'object-updates',records:[{action:'create',objectType:6,id:itemId,state:{position:[1,2,0]}}],complete:true});
+ const ground=world.registry.get(itemId);
+ assert.deepEqual([ground.areaId,ground.inventoryLocation,ground.equipmentOwnerId,ground.inventoryLocationStatus,world.quickbar[0].itemId],[areaId,null,null,'current',itemId]);
+ const before=structuredClone(ground);
+ await assert.rejects(session.useItem(request),/source is unavailable/);
+ assert.equal(h.sent.length,1);
+ assert.deepEqual(world.registry.get(itemId),before);
+
+ await h.deliver({kind:'object-updates',records:[disclose],complete:true});
+ await session.useItem(request);
+ assert.deepEqual(h.sent[1],[...itemUseRequest(request)]);
+ const otherId=0x80000003;
+ world.registry.addObjectAtPos(otherId,{id:otherId,objectType:6,areaId:0x7f000000,replicated:{}});
+ world.quickbar[1]={type:1,itemId:otherId};
+ await session.useItem({...request,itemId:otherId});
+ assert.deepEqual(h.sent[2],[...itemUseRequest({...request,itemId:otherId})]);
+ const equippedId=0x80000004;
+ world.registry.addObjectAtPos(equippedId,{id:equippedId,objectType:6,areaId:0x7f000000,inventoryLocation:{ownerId:actorId,channel:'I'},equipmentOwnerId:actorId,inventoryLocationStatus:'current'});
+ await session.useItem({...request,itemId:equippedId});
+ assert.deepEqual(h.sent[3],[...itemUseRequest({...request,itemId:equippedId})]);
+ await session.disconnect();
+});
+
 test('inventory panel request clears only GUI repository entries before transport can deliver the fresh page',async()=>{
  const h=harness(),s=h.session,actor={id:0xffffffff,objectType:5,areaId:0x80000001,replicated:{}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.inventories.set('R',{entries:[{id:0x80000002,x:0,y:0}]});const before=structuredClone([...s.world.registry.objects]);let observed=false;h.peer.sendGameMessage=async()=>{observed=true;assert.deepEqual(s.world.inventories.get('R').entries,[]);};await s.inventoryPanel({areaId:actor.areaId,areaGeneration:2,panel:0});assert.ok(observed);assert.deepEqual([...s.world.registry.objects],before);s.world.inventories.get('R').entries=[{id:0x80000002}];await assert.rejects(s.inventoryPanel({areaId:actor.areaId,areaGeneration:2,panel:256}));assert.equal(s.world.inventories.get('R').entries.length,1,'invalid input does not clear the current panel');
 });

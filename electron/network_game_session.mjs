@@ -530,7 +530,8 @@ export class NetworkGameSession extends EventEmitter {
  validateCastTarget(areaId,actor,targetId){if(targetId!==OBJECT_INVALID){const target=this.world.registry.get(targetId),ownedItem=target?.objectType===6&&(target.inventoryLocation?.ownerId===actor.id||this.world.quickbar.some(b=>b.type===1&&(b.itemId===targetId||b.secondaryItemId===targetId)));if(!target||target.replicationRemoved||!(target.areaId===areaId||ownedItem))throw new Error('Native spell target is unavailable');}}
  async useItem({areaId,areaGeneration,itemId,propertyIndex,variant=255,targetId=OBJECT_INVALID,position=[0,0,0]}){
   const actor=this.controlledActor(areaId,areaGeneration),item=this.world.registry.get(itemId),location=item?.inventoryLocation,shortcut=this.world.quickbar.some(b=>b.type===1&&b.itemId===itemId);
-  if(item?.objectType!==6||item.replicationRemoved||!(shortcut||location?.ownerId===actor.id&&['R','I'].includes(location.channel)))throw new Error('Native item-use source is unavailable');
+  const grounded=item?.inventoryLocationStatus==='current'&&item.areaId===areaId&&location===null&&item.equipmentOwnerId===null;
+  if(item?.objectType!==6||item.replicationRemoved||grounded||!(shortcut||location?.ownerId===actor.id&&['R','I'].includes(location.channel)))throw new Error('Native item-use source is unavailable');
   this.validateCastTarget(areaId,actor,targetId);
   await this.peer.sendGameMessage(itemUseRequest({itemId,propertyIndex,variant,targetId,position}));return{sent:true};
  }
