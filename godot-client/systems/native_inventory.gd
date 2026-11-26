@@ -17,7 +17,7 @@ const EQUIPMENT=[
 	[2048,80,160,100.0/3,80,"Arrows"],[4096,80+100.0/3,160,100.0/3,80,"Bullets"],[8192,80+200.0/3,160,100.0/3,80,"Bolts"]]
 var ui
 var icons
-var retained_item_icons:=OS.get_cmdline_user_args().has("--item-icon-backend=retained") or OS.get_environment("NWN_ITEM_ICON_BACKEND")=="retained"
+var retained_item_icons:=not (OS.get_cmdline_user_args().has("--item-icon-backend=bitmap") or OS.get_environment("NWN_ITEM_ICON_BACKEND")=="bitmap")
 var scene_layout_ready_seen:=false
 var equipment_skin
 var frame_skin
@@ -347,6 +347,8 @@ func refresh() -> void:
 	if not carried_drag_row.is_empty(): views[drag_entry]=previous_drag
 	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
 	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(title_source,owner_id),"page":page,"items":rows,"dragEntry":drag_entry,"carriedDragRow":carried_drag_row,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container_title,controlled_id),"page":container_page,"pageCount":container_page_count}})
+	var store_host=ui.store_icon_host if retained_item_icons else null
+	if is_instance_valid(store_host): store_host.begin_batch()
 	if detailed_timings and timing_rows.size()<512:
 		var committed:=Time.get_ticks_usec()
 		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_us,"signature_us":signature_ready_us-sources_ready_us,"requests_us":requests_done_us-rows_built_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":owner_id,"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
@@ -365,6 +367,7 @@ func refresh() -> void:
 	if retained_item_icons:
 		ui.seal_scene_icon_view(expected_scene_icons)
 		if is_instance_valid(ui.scene_host): ui.scene_host.end_batch()
+		if is_instance_valid(store_host): store_host.end_batch()
 	if detailed_timings and timing_rows.size()<512:
 		timing_rows.append({"phase":"native-icon-bindings-committed","mono_us":Time.get_ticks_usec(),"page":page,"view":view_serial,"bound_icons":expected_scene_icons if retained_item_icons else ready_icons.size(),"host_revision":ui.scene_host.revision if retained_item_icons and is_instance_valid(ui.scene_host) else null})
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:

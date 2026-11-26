@@ -11,6 +11,7 @@ var items: Dictionary = {}
 var buttons: Dictionary = {}
 var textures: Dictionary = {}
 var scene_host
+var store_icon_host
 var scene_icon_source
 var scene_icon_backend_selected:=false
 var scene_icon_bindings: Dictionary={}
@@ -311,6 +312,7 @@ func render() -> void:
 		store_panel.setup(self, layout_storage)
 		get_parent().add_child(store_panel)
 		if native_store!=null: native_store.attach(store_panel)
+		_prepare_store_icon_host()
 	if is_instance_valid(store_panel): store_panel.render(store)
 	var summary: Dictionary = state.summary
 	footer.text = "%s / %s lbs.                  GP: %s" % [str(int(summary.weight)) if summary.weight != null else "—", str(int(summary.capacity)) if summary.capacity != null else "—", str(int(summary.gold)) if summary.gold != null else "—"]
@@ -349,31 +351,52 @@ func configure_scene_icons(source) -> bool:
 	scene_host.presented.connect(func(_revision): try_admit_scene_icons())
 	sync_scene_icon_host(); return true
 
+func _prepare_store_icon_host() -> void:
+	if not scene_icon_backend_selected or not is_instance_valid(scene_icon_source): return
+	var host:=SceneHost.new()
+	host.name="MerchantItemIconScene"
+	store_panel.add_child(host)
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if not host.configure(scene_icon_source.pool):
+		scene_icon_failure=str(host.failure)
+		host.queue_free()
+		return
+	store_icon_host=host
+	store_panel.resized.connect(sync_scene_icon_host)
+	host.presented.connect(func(_revision): try_admit_scene_icons())
+
+func scene_icon_hosts() -> Array:
+	var hosts: Array=[]
+	if is_instance_valid(scene_host): hosts.append(scene_host)
+	if is_instance_valid(store_icon_host): hosts.append(store_icon_host)
+	return hosts
+
+func scene_icon_host_for(entry: int):
+	return store_icon_host if items.get(entry,{}).get("channel","")=="M" else scene_host
+
 func retire_scene_icons() -> void:
-	if is_instance_valid(scene_host): scene_host.clear()
+	for host in scene_icon_hosts(): host.clear()
 	scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
 
 func sync_scene_icon_host() -> void:
-	if not is_instance_valid(scene_host): return
-	var pixels:=Vector2i(maxi(2,roundi(size.x)),maxi(2,roundi(size.y)))
-	if scene_host.viewport.size!=pixels:
-		scene_host.resize_panel(size)
+	for host in scene_icon_hosts():
+		var panel_size: Vector2=host.get_parent().size
+		var pixels:=Vector2i(maxi(2,roundi(panel_size.x)),maxi(2,roundi(panel_size.y)))
+		if host.viewport!=null and host.viewport.size!=pixels: host.resize_panel(panel_size)
 	for id in scene_icon_bindings: position_scene_icon(int(id))
 	try_admit_scene_icons()
 
-func scene_icon_anchor(button) -> Vector2:
-	var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
-	return scene_host.get_global_transform().affine_inverse()*(button.get_global_transform()*local)
-
 func position_scene_icon(entry: int) -> bool:
-	if not is_instance_valid(scene_host) or not buttons.has(entry) or not scene_icon_bindings.has(entry): return false
+	var host=scene_icon_host_for(entry)
+	if not is_instance_valid(host) or not buttons.has(entry) or not scene_icon_bindings.has(entry): return false
 	var row: Dictionary=scene_icon_bindings[entry]
 	var button=buttons[entry]
-	var anchor:=scene_icon_anchor(button)
+	var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
+	var anchor: Vector2=host.get_global_transform().affine_inverse()*(button.get_global_transform()*local)
 	row.anchor=anchor; scene_icon_bindings[entry]=row
 	# bind_slot reuses an unchanged model, repositions a moved one, or replaces
 	# an item whose visual resource changed without clearing the whole panel.
-	return scene_host.bind_slot(str(entry),str(row.key),row.bundle,anchor)
+	return host.bind_slot(str(entry),str(row.key),row.bundle,anchor)
 
 func install_scene_icon(view: int,entry: int,key: String,bundle: Dictionary) -> bool:
 	if view!=view_id or not is_instance_valid(scene_host) or not items.has(entry) or key.is_empty() or bundle.is_empty(): return false
@@ -382,26 +405,29 @@ func install_scene_icon(view: int,entry: int,key: String,bundle: Dictionary) -> 
 		buttons[entry].image.texture=null; buttons[entry].caption.hide()
 		buttons[entry].count.z_index=1
 		if not position_scene_icon(entry):
-			scene_icon_failure=str(scene_host.failure); return false
+			var host=scene_icon_host_for(entry)
+			scene_icon_failure=str(host.failure) if is_instance_valid(host) else "Item icon panel is unavailable"
+			return false
 	return true
 
 func seal_scene_icon_view(expected: int) -> void:
 	if scene_icon_bindings.size()!=expected:
 		scene_icon_failure="Original item icon scene is incomplete (%d/%d)"%[scene_icon_bindings.size(),expected]
-	if is_instance_valid(scene_host):
-		for binding_id in scene_host.slots.keys():
-			if not scene_icon_bindings.has(int(binding_id)): scene_host.unbind_slot(str(binding_id))
-		if not scene_icon_failure.is_empty(): scene_host.presentation.visible=false
+	for host in scene_icon_hosts():
+		for binding_id in host.slots.keys():
+			if not scene_icon_bindings.has(int(binding_id)) or scene_icon_host_for(int(binding_id))!=host: host.unbind_slot(str(binding_id))
+		if not scene_icon_failure.is_empty(): host.presentation.visible=false
 	scene_icon_sealed=true; try_admit_scene_icons()
 
 func try_admit_scene_icons() -> void:
 	if not scene_icon_sealed or not is_instance_valid(scene_host) or not wanted or view_id<0 or not scene_icon_failure.is_empty(): return
 	for id in scene_icon_bindings:
-		if not scene_host.binding_ready(str(id)): return
+		var host=scene_icon_host_for(id)
+		if not is_instance_valid(host) or not host.binding_ready(str(id)): return
 	if not scene_host.presentation_ready(): return
 	# The frame art is a later sibling of the host. Put the transparent icon
 	# image above it so its dark overlay cannot tint the models or cover hover.
-	scene_host.move_to_front()
+	for host in scene_icon_hosts(): host.move_to_front()
 	show(); move_to_front()
 
 func select_item(id: int) -> void:
