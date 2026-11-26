@@ -234,6 +234,8 @@ func scene_icon_ready(key: String,bundle: Dictionary,error: String) -> void:
 	request_art_admission()
 func emit_command(operation: String,extra: Dictionary={}) -> void:
 	var value:={"kind":"native-barter","operation":operation,"serial":int(state.get("serial",-1)),"targetId":int(state.get("partnerId",INVALID))}; value.merge(extra,true)
+	if operation=="accept" and bool(value.get("value",false)) and state.has("offerLockRevision"):
+		value.offerLockRevision=int(state.offerLockRevision)
 	stats.commands+=1; owner_ui.desktop.command(value)
 func command(operation: String,extra: Dictionary={}) -> void:
 	if not active() or pending.has("close"): stats.stale_input+=1; return

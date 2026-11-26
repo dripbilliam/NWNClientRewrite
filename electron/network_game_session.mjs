@@ -613,7 +613,7 @@ export class NetworkGameSession extends EventEmitter {
   }
   return{sent:true};
  }
- async barterInput({areaId,areaGeneration,actorId,serial,operation,targetId=OBJECT_INVALID,itemId=OBJECT_INVALID,value=false,x=255,y=255}){
+ async barterInput({areaId,areaGeneration,actorId,serial,operation,targetId=OBJECT_INVALID,itemId=OBJECT_INVALID,value=false,x=255,y=255,offerLockRevision}){
   const actor=this.controlledActor(areaId,areaGeneration),state=this.world.barter;
   if(actor.id!==actorId)throw Error('Native barter belongs to an old controlled creature');
   if(operation==='start'){
@@ -625,7 +625,10 @@ export class NetworkGameSession extends EventEmitter {
    if(['add','remove','move'].includes(operation)){
     const item=this.world.registry.get(itemId),channel=operation==='add'?'R':'B';
     if(state.ownLocked||item?.inventoryLocation?.ownerId!==actor.id||item.inventoryLocation.channel!==channel||item.replicationRemoved||!this.world.inventories.get(channel)?.entries.some(e=>e.id===itemId))throw Error('Native barter item selection is stale or locked');
-   }else if(operation==='accept'&&(!state.ownLocked||!state.otherLocked))throw Error('Both native barter offers must be locked');
+   }else if(operation==='accept'){
+    if(!state.ownLocked||!state.otherLocked)throw Error('Both native barter offers must be locked');
+    if(value&&offerLockRevision!==undefined&&offerLockRevision!==state.offerLockRevision)throw Error('The locked barter offer changed before acceptance');
+   }
   }
   await this.peer.sendGameMessage(barterRequest({operation,targetId,itemId,value,x,y}));return{sent:true};
  }

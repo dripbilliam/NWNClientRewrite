@@ -29,14 +29,19 @@ export function applyNetworkBarter(world,message){
  if(message.kind==='barter-start'){
   const own=world.localObjectId;if(own!==message.firstId&&own!==message.secondId)return false;
   const serial=(world.barter?.serial??0)+1;retireNetworkBarter(world);
-  world.barter={open:true,serial,revision:1,actorId:own,areaId:world.areaId,firstId:message.firstId,secondId:message.secondId,partnerId:own===message.firstId?message.secondId:message.firstId,initiator:own===message.firstId,ownLocked:false,otherLocked:false,ownAccepted:false,otherAccepted:false};
+  world.barter={open:true,serial,revision:1,offerLockRevision:1,actorId:own,areaId:world.areaId,firstId:message.firstId,secondId:message.secondId,partnerId:own===message.firstId?message.secondId:message.firstId,initiator:own===message.firstId,ownLocked:false,otherLocked:false,ownAccepted:false,otherAccepted:false};
   world.inventories.set('A',{entries:[]});world.inventories.set('B',{entries:[]});return true;
  }
  if(message.kind==='barter-close'){retireNetworkBarter(world,message.completed);return true;}
  const state=world.barter;
  if(!state?.open||state.actorId!==world.localObjectId||state.areaId!==world.areaId)return false;
  if(message.kind==='barter-lock'||message.kind==='barter-accept'){
-  const key=(message.initiator===state.initiator?'own':'other')+(message.kind==='barter-lock'?'Locked':'Accepted');state[key]=message.value;state.revision++;return true;
+  const locking=message.kind==='barter-lock',key=(message.initiator===state.initiator?'own':'other')+(locking?'Locked':'Accepted');
+  state.revision++;
+  // An offer can be replaced after unlocking and relocking the same trade.
+  // Duplicate lock reports and acceptance replies do not change that offer's lifetime.
+  if(locking&&state[key]!==message.value)state.offerLockRevision=state.revision;
+  state[key]=message.value;return true;
  }
  return false;
 }
