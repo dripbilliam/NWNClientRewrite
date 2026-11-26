@@ -828,7 +828,7 @@ async function finish(reason){
 	if(actionSpecialAttackCheck&&['native-feat','native-cancel-action'].includes(message.kind)){report.specialAttackRequests??=[];report.specialAttackRequests.push({kind:message.kind,featId:message.featId,targetId:message.targetId,auxiliary:message.auxiliary,actionId:message.actionId,groupId:message.groupId});}
     if(actionFeatCheck&&['native-feat','native-quickbar-assign','native-mode','walk'].includes(message.kind)){report.featFamilyRequests??=[];if(report.featFamilyRequests.length<16)report.featFamilyRequests.push(structuredClone(message));}
    const input={...message,...scope,actorId:session.world.localObjectId};let result;
-   if(['native-map','native-party','native-chat-party','native-players','native-player-attitude','native-disengage','native-cancel-polymorph'].includes(message.kind))input.actorId=message.actorId;
+   if(['native-map','native-party','native-chat-party','native-players','native-player-attitude','native-disengage','native-cancel-polymorph','native-rest'].includes(message.kind))input.actorId=message.actorId;
    // Correlate transport refusal only. Success still waits for raw server slots.
    const preparationReply=message.kind==='native-chat-party'?{generation:message.generation,areaId:message.areaId,actorId:input.actorId}:['native-prepare','native-map','native-party','native-players','native-player-attitude'].includes(message.kind)&&Number.isSafeInteger(message.requestId)?{requestId:message.requestId,generation:message.generation,areaId:message.areaId,actorId:input.actorId}:{};
    let partyTrace,levelSourceObservation,levelReply={};
