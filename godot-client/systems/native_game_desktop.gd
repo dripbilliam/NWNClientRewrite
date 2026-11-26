@@ -741,7 +741,10 @@ func input_request(message: Dictionary) -> void:
 		"book-prepare","book-clear": prepare_spell(message)
 		"quickbar-activate":
 			var index:=int(message.index)
-			if int(message.quickbarId)==quickbar.quickbar_id and index>=0 and index<quick_bindings.size(): activate(quick_bindings[index],index)
+			if int(message.quickbarId)!=quickbar.quickbar_id or index<0 or index>=quick_bindings.size(): return
+			# The accepted header can change a binding before its control is redrawn.
+			var accepted: Array=state.get("quickbar",quick_bindings)
+			if index<accepted.size() and accepted[index]==quick_bindings[index]: activate(quick_bindings[index],index)
 		"quickbar-clear":
 			if int(message.quickbarId)==quickbar.quickbar_id: assign(int(message.index),{"type":0})
 		"quickbar-move":
