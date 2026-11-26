@@ -78,7 +78,14 @@ func receive(message: Dictionary) -> void:
 		"sheet-view":
 			if not wanted: return
 			save_scrolls()
-			if not state.is_empty() and state.model.identity != message.model.identity: selected.clear(); scrolls.clear()
+			if not state.is_empty() and state.model.identity != message.model.identity:
+				# The header controls survive a subject change. Retire a held
+				# press before release can act on the replacement record.
+				for button: Button in tabs + [close_button]:
+					var was_disabled := button.disabled
+					button.disabled = true
+					button.disabled = was_disabled
+				selected.clear(); scrolls.clear()
 			state = message.duplicate(true); view_id = int(message.viewId); page = int(message.page)
 			render()
 		"sheet-image":
