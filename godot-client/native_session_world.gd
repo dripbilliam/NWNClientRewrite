@@ -734,11 +734,11 @@ func receive_profiled(message: Dictionary) -> void:
 			if message.kind=="browser-view":
 				send({"kind":"browser-observed","viewId":int(message.viewId),"native_rendering":true})
 		"lobby":
-			if session_connection==cancelled_connection and str(message.state.get("phase","")) in ["connecting","resources","resources-unavailable"]: return
+			var phase:=str(message.state.get("phase",""))
+			if session_connection==cancelled_connection and phase not in ["disconnecting","closed","menu"]: return
 			session_connection=int(message.connection); character_lobby.apply_state(message)
 			if not pending_creator.is_empty() and not creation_entry_current(int(pending_creator.connection)):pending_creator.clear()
 			render_menu.observe_lobby(message.state)
-			var phase:=str(message.state.get("phase",""))
 			if phase in ["closed","disconnecting"]:
 				cancelled_connection=session_connection; reset_session()
 			if phase=="closed": return_to_browser=true
