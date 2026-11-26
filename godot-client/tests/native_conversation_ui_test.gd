@@ -1,5 +1,7 @@
 extends "res://tests/native_quickbar_frame_test.gd"
 const DialogPlan=preload("res://systems/native_data/conversation_layout.gd")
+const ModalInput=preload("res://tests/native_modal_owner_input_test.gd")
+const Painter=preload("res://systems/native_gui_painter.gd")
 func dialog_settled(ui) -> bool:
 	var skin=ui.conversation_skin
 	if not skin.layout_ready or not skin.failure.is_empty() or not ui.conversation.visible or not skin.display_ready() or skin.background==null or not skin.background.visible or not settled(ui): return false
@@ -10,16 +12,103 @@ func dialog_settled(ui) -> bool:
 	return true
 func receive(ui,message: Dictionary) -> void:
 	ui.receive(message,1); await process_frame; await process_frame
+
+func admit_headless_dialog(ui, texture: Texture2D) -> bool:
+	var skin=ui.conversation_skin
+	var deadline := Time.get_ticks_msec() + 8000
+	while Time.get_ticks_msec() < deadline and skin.failure.is_empty():
+		await process_frame
+		if not skin.layout_ready or skin.background_key.is_empty():
+			continue
+		if not skin.frame.art.textures.has(skin.background_key):
+			skin.frame.art.deliver(skin.background_key, texture)
+		if skin.display_ready() and ui.conversation.is_visible_in_tree():
+			return true
+	return false
+
+func modal_shortcut_checks(ui, texture: Texture2D) -> Dictionary:
+	var actor := {"id":42,"objectType":5,"areaId":55,"replicated":{"name":{"text":"Listener"},"position":[0,0,0],"stats":{"classes":[]}}}
+	var speaker := actor.duplicate(true)
+	speaker.id = 43
+	ui.set_world(1,55,42,[actor,speaker],{},{"area":{"id":55}})
+	var dialog: Control = ui.conversation
+	dialog.position = Vector2(60,70)
+	ui.receive({"kind":"dialog-entry","ownerId":43,"speakerId":43,"tokenObjectId":43,"text":{"text":"Choose the offered reply."}},1)
+	var offer := {"kind":"dialog-replies","entryId":51,"end":false,"firstCount":1,"secondCount":0,"tokenObjectId":43,"replies":[{"id":91,"text":{"text":"Current offer"}}]}
+	ui.receive(offer,1)
+	var admitted := await admit_headless_dialog(ui, texture)
+	check(admitted, "The actual native dialogue admits the received offer")
+	if not admitted:
+		return {"dialogue":ui.conversation_skin.snapshot()}
+	ui.present_examine({"kind":"examine","type":"placeable","targetId":77,"name":{"text":"Server examine"},"description":{"text":"Received details"}})
+	var deadline := Time.get_ticks_msec() + 6000
+	while not ui.examine.is_visible_in_tree() and ui.examine.admission_failure.is_empty() and Time.get_ticks_msec() < deadline:
+		await process_frame
+	var top: bool = ui.examine.is_visible_in_tree() and ui.examine.modal_lease.admits() and not ui.examine.modal_lease.ticket.is_empty() and ui.examine.get_parent().get_parent().layer > ui.layer.layer
+	check(top and dialog.is_visible_in_tree(), "Actual Examine is admitted on a separate canvas above dialogue")
+	if not top:
+		return {"examine":ui.examine_skin.art_snapshot()}
+	var reply: Button = dialog.replies.get_child(0)
+	var point := reply.get_global_transform_with_canvas() * (reply.size * 0.5)
+	var detail: Control = ui.examine.scroll
+	ui.examine.position += point - (detail.get_global_transform_with_canvas() * (detail.size * 0.5))
+	await process_frame
+	await motion(point)
+	var hovered := surface.gui_get_hovered_control()
+	check(is_instance_valid(hovered) and ui.examine.is_ancestor_of(hovered), "Examine content physically covers the dialogue reply point")
+	await key(KEY_1)
+	await key(KEY_1,false)
+	var covered := requests.filter(func(message): return message.kind == "reply")
+	check(covered.is_empty() and not dialog.pending, "A covered dialogue cannot submit its numeric reply")
+	ui.examine.reset()
+	await key(KEY_1)
+	await key(KEY_1,false)
+	var fresh := requests.filter(func(message): return message.kind == "reply").slice(covered.size())
+	check(fresh == [{"kind":"reply","entryId":51,"replyId":91,"abort":false}] and dialog.pending, "Closing Examine lets a fresh digit choose the same current offer once")
+	var before := requests.size()
+	offer.entryId = 52
+	ui.receive(offer, 1)
+	check(await admit_headless_dialog(ui, texture), "A later offer admits before testing abort")
+	await key(KEY_ESCAPE)
+	await key(KEY_ESCAPE,false)
+	var abort := requests.slice(before).filter(func(message): return message.kind == "reply")
+	check(abort == [{"kind":"reply","entryId":52,"replyId":4294967295,"abort":true}], "Normal Escape still sends one authoritative abort")
+	return {"covered":covered,"fresh":fresh,"abort":abort,"examine_above":top}
+
+func run_modal_shortcuts(ui, output: String) -> void:
+	var painter := Painter.new()
+	painter.art = ModalInput.SourceFixture.ControlledArt.new()
+	painter.fonts = ModalInput.ReadyFonts.new()
+	painter.add_child(painter.art)
+	painter.add_child(painter.fonts)
+	surface.add_child(painter)
+	ui.examine_skin.frame = painter
+	var raster := Image.create(16,16,false,Image.FORMAT_RGBA8)
+	raster.fill(Color.WHITE)
+	var evidence := await modal_shortcut_checks(ui, ImageTexture.create_from_image(raster))
+	ui.close()
+	ui.free()
+	painter.free()
+	var file := FileAccess.open(output, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"evidence":evidence,"scope":"Installed Dialogue and Examine controls with controlled raster and font publication. Actual standalone SubViewport input. No GPU or server session."},"  "))
+	file.close()
+	quit(0 if failures.is_empty() else 1)
+
 func run() -> void:
 	var output:=""; var install:=""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--report="): output=arg.substr(9)
 		if arg.begins_with("--install="): install=arg.substr(10)
 	if output.is_empty() or install.is_empty() or FileAccess.file_exists(output): quit(2); return
-	root.size=Vector2i(1200,900); surface=SubViewport.new(); surface.size=root.size; surface.render_target_update_mode=SubViewport.UPDATE_ALWAYS; surface.gui_disable_input=false; surface.handle_input_locally=true; root.add_child(surface); surface.notify_mouse_entered()
-	var display:=TextureRect.new(); root.add_child(display); display.texture=surface.get_texture(); display.size=root.size; display.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var modal_shortcuts := OS.get_cmdline_user_args().has("--modal-shortcuts")
+	root.size=Vector2i(1200,900); surface=SubViewport.new(); surface.size=root.size; surface.render_target_update_mode=SubViewport.UPDATE_DISABLED if modal_shortcuts else SubViewport.UPDATE_ALWAYS; surface.gui_disable_input=false; surface.handle_input_locally=true; root.add_child(surface); surface.notify_mouse_entered()
+	if not modal_shortcuts:
+		var display:=TextureRect.new(); root.add_child(display); display.texture=surface.get_texture(); display.size=root.size; display.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var catalog:=Catalog.new(); check(catalog.mount_install(install),"Original conversation resources mount read-only")
 	var ui:=Gameplay.new(); surface.add_child(ui); ui.configure(catalog,install,ProjectSettings.globalize_path("user://native-prepared-v2"),output+".layout.cfg"); ui.request.connect(func(m):requests.append(m.duplicate(true)))
+	if modal_shortcuts:
+		await run_modal_shortcuts(ui, output)
+		return
 	check(await wait_until(func():return ui.tables_ready),"Active original TLK and portrait rules prepare")
 	var dialog=ui.conversation; var skin=ui.conversation_skin; check(skin.requested and not dialog.opened,"Installed conversation models prepare before the first dialogue")
 	var fallback_key: String=skin.frame.art.portrait_resource("po_hu_m_99_m").to_lower()

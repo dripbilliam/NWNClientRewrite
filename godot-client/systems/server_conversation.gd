@@ -16,6 +16,7 @@ var serial:=0
 var local_end:=false
 var speaker_id:=-1
 var native_skin
+var modal_order
 var entry_rich: Dictionary={}
 var failure_notice: RichTextLabel
 
@@ -165,6 +166,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		choose(4294967295, true)
 		get_viewport().set_input_as_handled()
 	elif event.keycode >= KEY_0 and event.keycode <= KEY_9:
+		if is_instance_valid(modal_order) and modal_order.has_live_top():
+			return
 		var index: int = 9 if event.keycode == KEY_0 else int(event.keycode) - KEY_1
 		if index < reply_ids.size() and reply_available[index]:
 			choose(reply_ids[index])

@@ -76,6 +76,10 @@ func with_callback(ticket: Dictionary,callback: Callable) -> Variant:
 	else:
 		_callback_owner=0;_callback_epoch=0
 	return result
+func has_live_top() -> bool:
+	# A registered live owner is known even when some modal families are unregistered.
+	return not _closed and not _records.is_empty() and _records.back().owner.get_ref() != null
+
 func top() -> Dictionary:
 	if _closed: return unavailable("closed")
 	if not _coverage: return unavailable("membership_unavailable")

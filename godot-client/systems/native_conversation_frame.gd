@@ -39,6 +39,7 @@ var fallback_portrait_preload:=StyleBoxTexture.new()
 var rendered_serial:=-1
 func configure(owner,catalog,cache_path: String) -> void:
 	ui=owner; view=ui.conversation; view.native_skin=self; frame=ui.inventory.frame_skin
+	view.modal_order=ui.modal_order
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	view.rendered.connect(changed); frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded)
 	# These installed models and fonts do not depend on a received dialogue.
