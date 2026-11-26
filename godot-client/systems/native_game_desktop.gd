@@ -147,7 +147,7 @@ func configure(ui,catalog,cache_path: String,layout: String="user://native-menu-
 	buffs=preload("res://systems/server_buffs.gd").new(); ui.controls.add_child(buffs); buffs.setup()
 	buff_frame=preload("res://systems/native_effect_bar.gd").new(); add_child(buff_frame); buff_frame.configure(buffs,art,catalog,cache_path,ui.inventory.item_tooltips)
 	buffs.effect_selected.connect(func(id):command({"kind":"native-panel","panel":"effect","open":true,"effectId":id}))
-	action_queue=preload("res://systems/server_action_queue.gd").new(); ui.controls.add_child(action_queue); action_queue.setup(self); action_queue.cancel_requested.connect(func(id,group): command({"kind":"native-cancel-action","actionId":id,"groupId":group}))
+	action_queue=preload("res://systems/server_action_queue.gd").new(); ui.controls.add_child(action_queue); action_queue.setup(self); action_queue.cancel_requested.connect(func(id,group): command({"kind":"native-cancel-action","actionId":id,"groupId":group,"requestId":action_queue.cancel_request_serial}))
 	radial=preload("res://systems/server_radial.gd").new(); add_child(radial); radial.request.connect(input_request)
 	radial.key_bindings=ui.key_bindings
 	radial.preview_provider=radial_preview
@@ -1396,7 +1396,7 @@ func receive(message: Dictionary) -> void:
 	# presentation. An old refusal must not show a global prompt over a new UI.
 	if message.action=="native-level-up":level_owner.receive_result(message);return
 	if not message.accepted:
-		if message.action=="native-cancel-action": action_queue.rejected()
+		if message.action=="native-cancel-action" and message.has("requestId") and not action_queue.rejected(int(message.requestId)): return
 		target_prompt.text=str(message.get("text","The action was not accepted.")); target_prompt.show()
 		return
 func radial_diagnostic() -> Dictionary:

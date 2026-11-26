@@ -65,8 +65,8 @@ func run() -> void:
 	entries.erase(entries[1]); queue.present(entries)
 	check(not queue.buttons.has(100) and not queue.pending.has(100) and queue.buttons[101]==second and second.position==Vector2(46,3),"Received deletion retires only that widget and promotes the surviving queue")
 	first.pressed.emit(); check(sent.size()==1,"A removed action cannot route a stale pressed signal")
-	queue.rejected(); second.pressed.emit(); check(sent.size()==2 and queue.pending.has(101),"Another action can be cancelled independently")
-	queue.rejected(); check(queue.pending.is_empty() and second.modulate.a==1.0 and queue.buttons[101]==second,"Transport rejection restores the surviving widget without rebuilding it")
+	second.pressed.emit(); check(sent.size()==2 and queue.pending.has(101),"Another action can be cancelled independently")
+	queue.rejected(int(queue.pending[101])); check(queue.pending.is_empty() and second.modulate.a==1.0 and queue.buttons[101]==second,"Transport rejection restores the surviving widget without rebuilding it")
 	entries=[row(101,0x10004,0x10008)]
 	queue.present(entries); check(queue.buttons[101]==second,"Original WORD identity is stable across JSON integer representations")
 	second.pressed.emit(); check(sent.size()==3 and sent[2].actionId==4 and sent[2].groupId==8,"Cancellation explicitly preserves original WORD wire widths")

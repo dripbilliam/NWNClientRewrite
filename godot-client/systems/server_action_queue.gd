@@ -18,6 +18,7 @@ var requested:=false
 var layout_ready:=false
 var closed:=false
 var epoch:=0
+var cancel_request_serial:=0
 var failure:=""
 var artwork_failure:=""
 var artwork_notice:=""
@@ -141,11 +142,14 @@ func cancel(serial: int,button: Button,captured_epoch: int) -> void:
 	if closed or epoch!=captured_epoch or buttons.get(serial)!=button or pending.has(serial): return
 	var current: Array=rows.filter(func(row):return int(row.widgetSerial)==serial)
 	if current.is_empty() or identity(current[0])!=button.get_meta("action_identity"): return
-	pending[serial]=true; button.modulate.a=0.5
+	cancel_request_serial+=1
+	pending[serial]=cancel_request_serial; button.modulate.a=0.5
 	cancel_requested.emit(int(current[0].type)&65535,int(current[0].group)&65535)
-func rejected() -> void:
-	pending.clear()
-	for button in buttons.values(): button.modulate.a=1.0
+func rejected(request_id: int) -> bool:
+	var serial: Variant=pending.find_key(request_id)
+	if serial==null: return false
+	pending.erase(serial); buttons[serial].modulate.a=1.0
+	return true
 func blocks_pointer(point: Vector2) -> bool:
 	if closed or not is_visible_in_tree(): return false
 	for button in buttons.values():
