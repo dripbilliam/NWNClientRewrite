@@ -22,6 +22,7 @@ var selected_item := -1
 var selected_price := -1
 var selected_generation := -1
 var selected_channel := ""
+var selected_stack := 0
 
 func setup(owner, storage: String) -> void:
 	inventory = owner
@@ -85,12 +86,19 @@ func retire_stock(id: int) -> void:
 
 func clear_selection() -> void:
 	selected_item = -1; selected_price = -1; selected_generation = -1; selected_channel = ""
+	selected_stack = 0
 	if selection != null: selection.hide()
 
 func entry() -> int:
 	for id in inventory.items:
 		if int(inventory.items[id].itemId) == selected_item: return id
 	return -1
+
+func selection_current(row: Dictionary, store: Dictionary) -> bool:
+	return (selected_generation == int(store.get("generation", -1))
+		and selected_price == int(row.get("price", -1))
+		and selected_channel == str(row.channel)
+		and selected_stack == int(row.get("stack", 1)))
 
 func render(store: Dictionary) -> void:
 	if not store.get("open", false) or not inventory.wanted: reset(); return
@@ -130,7 +138,7 @@ func render(store: Dictionary) -> void:
 				if native_skin!=null: native_skin.clear_hover(id))
 		inventory.register_button(row, button)
 	var id := entry()
-	if id < 0 or selected_generation != int(store.generation) or selected_price != int(inventory.items[id].get("price", -1)) or selected_channel != str(inventory.items[id].channel):
+	if id < 0 or not selection_current(inventory.items[id], store):
 		clear_selection()
 	elif id >= 0: select_item(id, false)
 	if native_skin!=null: native_skin.render(store)
@@ -144,6 +152,7 @@ func select_item(id: int, raise_window: bool = true) -> void:
 	if not store.get("open", false): return
 	selected_item = int(row.itemId); selected_price = int(row.price); selected_generation = int(store.generation)
 	selected_channel = str(row.channel)
+	selected_stack = int(row.get("stack", 1))
 	var buy: bool = row.channel == "M"
 	prompt.text = "%s — %s for %s gold?" % [str(row.name), "Buy" if buy else "Sell", selected_price]
 	confirm.text = "Buy" if buy else "Sell"; confirm.disabled = row.pending
@@ -171,7 +180,7 @@ func transact(operation: String = "") -> void:
 	if id < 0: return
 	var row: Dictionary = inventory.items[id]
 	var store: Dictionary = inventory.state.get("store", {})
-	if row.pending or selected_generation != int(store.get("generation", -1)) or selected_price != int(row.get("price", -1)): return
+	if row.pending or not selection_current(row, store): return
 	command(operation if not operation.is_empty() else ("buy" if row.channel == "M" else "sell"), {"entryId": id})
 func blocks_pointer(point: Vector2) -> bool:
 	return visible and get_global_rect().has_point(point) or native_skin!=null and native_skin.selection_blocks(point)

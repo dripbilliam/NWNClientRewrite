@@ -52,21 +52,34 @@ func run() -> void:
 	data.viewId = 2; data.items[3].price = 200
 	panel.receive(data)
 	check(not store.selection.visible and not panel.can_drop(drag, 0), "Price/view revisions invalidate confirmation and old drags")
+	panel.select_item(0)
+	data.items[0].stack = int(data.items[0].stack)+1
+	data.store.gold += 1
+	data.viewId += 1
+	panel.receive(data)
+	count = sent.size(); store.transact()
+	check(not store.selection.visible and sent.size() == count, "An authoritative stack change at the same price retires the old Sell confirmation")
+	panel.select_item(0)
+	data.store.gold += 1
+	data.viewId += 1
+	panel.receive(data)
+	count = sent.size(); store.transact()
+	check(sent.size() == count+1 and sent.back().operation == "sell", "An unrelated balance update preserves the new Sell confirmation")
 	panel.select_item(3)
-	data.viewId = 3; data.items[3].pending = true
+	data.viewId += 1; data.items[3].pending = true
 	panel.receive(data)
 	count = sent.size(); store.transact()
 	check(store.confirm.disabled and sent.size() == count, "Outstanding transaction blocks duplicate confirmation")
 	panel.close_inventory(); panel.receive({"kind": "inventory-closed"}); panel.receive(data)
 	check(not panel.visible and not store.visible, "Closing both windows rejects late metadata from the same store generation")
-	data.viewId = 4; data.store.generation = 2
+	data.viewId += 1; data.store.generation = 2
 	panel.receive(data)
 	check(panel.visible and store.visible, "New server store generation can reopen native trading")
 	store.position = Vector2(60, 80)
-	data.viewId = 5; data.store.open = false
+	data.viewId += 1; data.store.open = false
 	panel.receive(data)
 	check(not store.visible and panel.equipment.visible and store.selected_item == -1, "Server closure restores equipment and retires merchant selection")
-	data.viewId = 6; data.store.open = true; data.store.generation = 3
+	data.viewId += 1; data.store.open = true; data.store.generation = 3
 	panel.receive(data)
 	check(store.position == Vector2(60, 80), "Reopening preserves the merchant's independent native position")
 	panel.reset()
