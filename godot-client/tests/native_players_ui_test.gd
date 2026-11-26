@@ -7,16 +7,110 @@ func players_settled(ui) -> bool:
 func type_text(value: String) -> void:
 	for letter in value:
 		var event:=InputEventKey.new(); event.keycode=letter.to_upper().unicode_at(0); event.unicode=letter.unicode_at(0); event.pressed=true; surface.push_input(event,true); await process_frame; event=event.duplicate(); event.pressed=false; surface.push_input(event,true); await process_frame
+
+func present_invite(ui, actor_id: int, inviter: int, notice: int) -> bool:
+	var actor := {"id":actor_id,"objectType":5,"areaId":55,"replicated":{"name":{"text":"Tester"},"position":[5,5,0],"hitPoints":{"current":10,"maximum":10},"stats":{"racialType":6,"classes":[{"id":10,"level":1}]},"party":{"singleton":1,"leader":1,"field7DC":1,"field7D8":inviter}}}
+	var header := {"area":{"pvp":1},"ui":{"partyInviteNotice":{"serial":notice,"name":"Inviter " + str(inviter)}}}
+	ui.set_world(1,55,actor_id,[actor],{},header)
+	var skin = ui.desktop.players_frame
+	var popup = skin.popup
+	var deadline := Time.get_ticks_msec() + 7000
+	while Time.get_ticks_msec() < deadline and skin.failure.is_empty():
+		await process_frame
+		if popup.layout_ready and popup.panel.is_visible_in_tree() and popup.state == {"scope":[1,55,actor_id],"inviter":inviter,"notice":notice}:
+			return true
+	return false
+
+func invitation_replies() -> Array:
+	return requests.filter(func(row): return row.kind == "native-party" and row.operation in ["accept","reject","ignore"])
+
+func own_invitation_reply(rows: Array, operation: String, actor_id: int, inviter: int) -> bool:
+	return rows.size() == 1 and rows[0].operation == operation and int(rows[0].actorId) == actor_id and int(rows[0].targetId) == inviter and int(rows[0].generation) == 1 and int(rows[0].areaId) == 55
+
+func replace_invite_while_held(ui, previous_actor: int, next_actor: int, notice: int) -> Dictionary:
+	var popup = ui.desktop.players_frame.popup
+	var admitted := await present_invite(ui,previous_actor,84,notice)
+	check(admitted,"Original invitation is visible before the gesture")
+	if not admitted:
+		return {"failure":ui.desktop.players_frame.failure,"popup":popup.snapshot()}
+	var button: Button = popup.buttons.rejectbutton
+	var point := button.get_global_transform_with_canvas() * (button.size * 0.5)
+	await motion(point)
+	check(surface.gui_get_hovered_control() == button,"Pointer hits the actual Reject control")
+	var before := invitation_replies().size()
+	await mouse(point,true)
+	check(button.button_pressed and invitation_replies().size() == before,"Old Reject is held without sending a request")
+	var replacement := await present_invite(ui,next_actor,85,notice+1)
+	check(replacement and popup.buttons.rejectbutton == button,"The replacement invitation reuses the same popup control")
+	var next_point := button.get_global_transform_with_canvas() * (button.size * 0.5)
+	await motion(next_point,next_point-point,true)
+	await mouse(next_point,false)
+	var stale := invitation_replies().slice(before)
+	check(stale.is_empty(),"Release of a retired invitation press sends no request")
+	if not stale.is_empty():
+		ack(ui.desktop,stale[0],false,"Fixture restores controls for the fresh gesture")
+	var before_fresh := invitation_replies().size()
+	await click(next_point)
+	var fresh := invitation_replies().slice(before_fresh)
+	check(own_invitation_reply(fresh,"reject",next_actor,85),"Fresh Reject sends exactly the current inviter and controlled actor")
+	if not fresh.is_empty():
+		ack(ui.desktop,fresh[0],true)
+	return {"stale":stale,"fresh":fresh}
+
+func verify_invitation_controls(ui) -> Dictionary:
+	var popup = ui.desktop.players_frame.popup
+	var admitted := await present_invite(ui,43,87,6)
+	check(admitted,"Same-notice scope presents a current invitation")
+	if not admitted:
+		return {"popup":popup.snapshot()}
+	var button: Button = popup.buttons.rejectbutton
+	var point := button.get_global_transform_with_canvas() * (button.size * 0.5)
+	await motion(point)
+	var before := invitation_replies().size()
+	await mouse(point,true)
+	check(await present_invite(ui,43,87,6),"Repeated snapshot retains the same invitation")
+	await mouse(point,false)
+	var repeated := invitation_replies().slice(before)
+	check(own_invitation_reply(repeated,"reject",43,87),"Refreshing the same notice preserves a held Reject")
+	check(await present_invite(ui,43,88,7),"Fresh Accept has its own admitted invitation")
+	before = invitation_replies().size()
+	await click(popup.buttons.okbutton.get_global_rect().get_center())
+	var accepted := invitation_replies().slice(before)
+	check(own_invitation_reply(accepted,"accept",43,88),"Fresh Accept responds once to its current inviter")
+	check(await present_invite(ui,43,89,8),"Fresh Escape has its own admitted invitation")
+	before = invitation_replies().size()
+	await key(KEY_ESCAPE)
+	await key(KEY_ESCAPE,false)
+	var ignored := invitation_replies().slice(before)
+	check(own_invitation_reply(ignored,"ignore",43,89),"Escape keeps the popup's distinct Ignore operation")
+	return {"sameNotice":repeated,"accept":accepted,"escape":ignored}
+
+func run_invitation_lifetime(ui, output: String) -> void:
+	var replacement := await replace_invite_while_held(ui,42,42,1)
+	var control_change := await replace_invite_while_held(ui,42,43,3)
+	var current_controls := await verify_invitation_controls(ui)
+	ui.close()
+	ui.free()
+	var file := FileAccess.open(output,FileAccess.WRITE)
+	file.store_string(JSON.stringify({"checks":checks,"failures":failures,"success":failures.is_empty(),"replacement":replacement,"controlChange":control_change,"currentControls":current_controls,"scope":"Installed native invitation controls and standalone SubViewport input, with authored received actor and invite notices. No graphical client or server session."},"  "))
+	file.close()
+	quit(0 if failures.is_empty() else 1)
+
 func run() -> void:
 	var output:=""; var install:=""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--report="): output=arg.substr(9)
 		if arg.begins_with("--install="): install=arg.substr(10)
 	if output.is_empty() or install.is_empty() or FileAccess.file_exists(output): quit(2); return
-	root.size=Vector2i(1200,900); surface=SubViewport.new(); surface.size=root.size; surface.render_target_update_mode=SubViewport.UPDATE_ALWAYS; surface.gui_disable_input=false; surface.handle_input_locally=true; root.add_child(surface); surface.notify_mouse_entered()
-	var display:=TextureRect.new(); root.add_child(display); display.texture=surface.get_texture(); display.size=root.size; display.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var invitation_lifetime := OS.get_cmdline_user_args().has("--invitation-lifetime")
+	root.size=Vector2i(1200,900); surface=SubViewport.new(); surface.size=root.size; surface.render_target_update_mode=SubViewport.UPDATE_DISABLED if invitation_lifetime else SubViewport.UPDATE_ALWAYS; surface.gui_disable_input=false; surface.handle_input_locally=true; root.add_child(surface); surface.notify_mouse_entered()
+	if not invitation_lifetime:
+		var display:=TextureRect.new(); root.add_child(display); display.texture=surface.get_texture(); display.size=root.size; display.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var catalog:=Catalog.new(); check(catalog.mount_install(install),"Original player-window resources mount read-only")
 	var ui:=Gameplay.new(); surface.add_child(ui); ui.configure(catalog,install,ProjectSettings.globalize_path("user://native-prepared-v2"),output+".layout.cfg"); ui.request.connect(func(message):requests.append(message.duplicate(true)))
+	if invitation_lifetime:
+		await run_invitation_lifetime(ui,output)
+		return
 	check(await wait_until(func():return ui.tables_ready),"Active player-window rules and original text prepare")
 	var actor:={"id":42,"objectType":5,"areaId":55,"replicated":{"name":{"text":"Player Tester"},"position":[5,5,0],"hitPoints":{"current":10,"maximum":10},"stats":{"racialType":6,"classes":[{"id":10,"level":1}]},"party":{"singleton":1,"leader":1,"field7DC":0}}}
 	var objects: Array=[actor,{"id":84,"objectType":5,"areaId":55,"replicated":{"reaction":1}},{"id":85,"objectType":5,"areaId":55,"replicated":{"reaction":2}}]

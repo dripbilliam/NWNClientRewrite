@@ -34,7 +34,11 @@ func observe() -> void:
 	seen=int(notice.serial); pending_id=-1; state={"scope":scope.duplicate(),"inviter":inviter,"notice":seen}; panel.show(); panel.move_to_front(); panel._clamp()
 	var resolved: String=owner_frame.desktop.owner_ui.text.resolve({"strRef":0x104d8},owner_frame.desktop.actor_id,{"localCustomTokens":{0:str(notice.get("name",""))}})
 	body.clear(); body.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER); Text.append(body,preload("res://systems/native_data/rich_text.gd").parse(resolved)); body.pop(); check_button.set_pressed_no_signal(not enabled)
-	for button in buttons.values(): button.disabled=false
+	# Only a new notice reaches here. Disabling clears Godot's held press
+	# before the same controls can send an answer to the new inviter.
+	for button in buttons.values():
+		button.disabled=true
+		button.disabled=false
 func activate(layout: Dictionary,models: Dictionary) -> void:
 	var name:=str(layout.get("Obj_ResRef","")).to_lower(); var main:=Geometry.model(models[name]); var origin: Vector2=-main.bounds.position; var parsed:=Gui.elements(layout,models,origin)
 	if not str(parsed.error).is_empty(): owner_frame.fail(str(parsed.error)); return
