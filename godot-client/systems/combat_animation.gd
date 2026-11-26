@@ -135,10 +135,10 @@ func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Var
 		return
 	if observes_motion:
 		_record_motion_path(s, remaining_path)
-	if pivots.has(id):
 	if animation == 1 and remaining_path is bool and not remaining_path and not controlled_source.is_empty():
 		if _cleared_ready_base(s, controlled_source):
 			animation = 0
+	if pivots.has(id):
 		actors[id].position = pivots[id].global_position
 		var rotation: float = pivots[id].rotation.y
 		actors[id].orientation = Vector3(-sin(rotation), 0, -cos(rotation))
