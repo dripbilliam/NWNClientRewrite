@@ -8,7 +8,8 @@ func run() -> void:
 	create_timer(30).timeout.connect(func():quit(3));root.size=Vector2i(1440,1000)
 	var desktop:=Desktop.new();root.add_child(desktop);desktop.owner_ui=Ui.new();desktop.actor_id=99;desktop.area_id=7;desktop.generation=1
 	desktop.rules.text=desktop.owner_ui.text;desktop.shortcut_rules.rules=desktop.rules;desktop.feat_rules.rules=desktop.rules;desktop.ability_rules.rules=desktop.rules;desktop.ability_rules.feats=desktop.feat_rules;desktop.spell_rules.rules=desktop.rules;desktop.spell_rules.abilities=desktop.ability_rules
-	desktop.art=Art.new();desktop.add_child(desktop.art);desktop.radial=Radial.new();desktop.add_child(desktop.radial);desktop.radial.request.connect(desktop.input_request);desktop.shortcut_dialogs=Dialogs.new();desktop.add_child(desktop.shortcut_dialogs);desktop.target_prompt=Label.new();desktop.add_child(desktop.target_prompt)
+	configure_wheel_art(desktop)
+	desktop.shortcut_dialogs=Dialogs.new();desktop.add_child(desktop.shortcut_dialogs);desktop.target_prompt=Label.new();desktop.add_child(desktop.target_prompt)
 	desktop.objects={99:{"id":99,"objectType":5,"companionId":100,"familiarId":101,"replicated":{"position":[1,2,3]}},100:{"id":100,"objectType":5,"replicated":{"name":{"text":"Actual associate"}}}}
 	for index in 36:desktop.quick_bindings.append({"type":0})
 	desktop.quick_bindings[0]={"type":39,"intParam":-19,"associateType":1,"associateId":100};desktop.quick_bindings[1]=desktop.quick_bindings[0].duplicate(true)

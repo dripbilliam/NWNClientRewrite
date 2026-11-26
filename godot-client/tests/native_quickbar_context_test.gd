@@ -3,6 +3,8 @@ const Desktop=preload("res://systems/native_game_desktop.gd")
 const Radial=preload("res://systems/server_radial.gd")
 const Bar=preload("res://systems/server_quickbar.gd")
 const Policy=preload("res://systems/native_data/quickbar_radial.gd")
+const SourceFixture=preload("res://tests/native_skill_description_source_test.gd")
+const ModalFixture=preload("res://tests/native_modal_owner_input_test.gd")
 class Text extends RefCounted:
 	var revision:=0
 	var tables: Dictionary={}
@@ -44,7 +46,27 @@ func mouse(point: Vector2,button: MouseButton,pressed: bool) -> void:
 func click(point: Vector2,button: MouseButton=MOUSE_BUTTON_LEFT) -> void:
 	await mouse(point,button,true);await mouse(point,button,false)
 func choose(desktop,slot: int) -> void:
-	await click(desktop.radial.buttons[slot].get_global_rect().get_center())
+	var wheel=desktop.radial
+	var deadline:=Time.get_ticks_msec()+2000
+	while wheel.active and wheel.menu_art_pending and Time.get_ticks_msec()<deadline:
+		await process_frame
+	if not wheel.active or wheel.menu_art_pending or not wheel.menu_art_failure.is_empty() or not wheel.stage.is_visible_in_tree():
+		return
+	await click(wheel.buttons[slot].get_global_rect().get_center())
+func configure_wheel_art(desktop) -> void:
+	desktop.art=SourceFixture.ControlledArt.new();desktop.add_child(desktop.art)
+	desktop.radial=Radial.new();desktop.add_child(desktop.radial);desktop.radial.request.connect(desktop.input_request)
+	# Supply the artwork and fonts that the wheel requires before admitting input.
+	desktop.radial.art=desktop.art
+	desktop.radial.layout_ready=true
+	var fonts:=ModalFixture.ReadyFonts.new()
+	desktop.add_child(fonts)
+	desktop.radial.configure_text(fonts)
+	for circle in [desktop.radial.center_frame]+desktop.radial.frames.values():
+		desktop.art.bind(circle,"gui_ra_circle56","texture",true,"")
+	desktop.art.bind(desktop.radial.selection,"gui_ra_clearring","texture",true,"")
+	for arrow in desktop.radial.arrows.values():
+		desktop.art.bind(arrow,"gui_ra_more","texture",true,"")
 func run() -> void:
 	var output:=""
 	for arg in OS.get_cmdline_user_args():
@@ -54,7 +76,7 @@ func run() -> void:
 	var deadline:=create_timer(90);deadline.timeout.connect(func():quit(3))
 	var desktop:=Desktop.new();root.add_child(desktop);desktop.owner_ui=Ui.new();desktop.actor_id=99;desktop.area_id=7;desktop.generation=1
 	desktop.rules.text=desktop.owner_ui.text;desktop.shortcut_rules.rules=desktop.rules;desktop.feat_rules.rules=desktop.rules;desktop.ability_rules.rules=desktop.rules;desktop.ability_rules.feats=desktop.feat_rules;desktop.spell_rules.rules=desktop.rules;desktop.spell_rules.abilities=desktop.ability_rules
-	desktop.art=Art.new();desktop.add_child(desktop.art);desktop.radial=Radial.new();desktop.add_child(desktop.radial);desktop.radial.request.connect(desktop.input_request)
+	configure_wheel_art(desktop)
 	desktop.shortcut_dialogs=Dialogs.new();desktop.add_child(desktop.shortcut_dialogs);desktop.target_prompt=Label.new();desktop.add_child(desktop.target_prompt)
 	desktop.objects={99:{"id":99,"objectType":5,"inventoryStats":{"skills":[{"index":9,"flag":true},{"index":13,"flag":false}]},"replicated":{"position":[1,2,3],"stats":{"classes":[{"id":8,"level":1}]}},"playerState":{"feats":[],"spellbooks":{}}},100:{"id":100,"objectType":5}}
 	desktop.owner_ui.text.tables={"skills":{"orderedRows":[{"Name":101,"Description":201,"Icon":"server_skill"}]},"feat":{"orderedRows":[{"FEAT":102,"Description":202,"ICON":"server_feat","SpellId":-1,"UsesPerDay":0,"SUCCESSOR":-1}]},"spells":{"orderedRows":[{"Name":103,"SpellDesc":203,"IconResRef":"server_spell","TargetType":2}]}}
