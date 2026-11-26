@@ -48,9 +48,14 @@ func draws(element: Dictionary,index: int) -> Array:
 func visit(element: Variant,index: int=-1,parent: int=-1,path: String="root",ancestors: Array=[],depth: int=0) -> int:
 	if not failure.is_empty(): return -1
 	if not element is Dictionary or str(element.get("type","")) not in TYPES or nodes.size()>=20000 or depth>64: failure="Unsupported native NUI element/depth/count"; return -1
-	var old: Dictionary=by_path.get(path,{}); var id: int=int(old.id) if old.get("element")==element and int(old.get("index",-2))==index else -1
+	var kind:=str(element.type)
+	var choice_map: Variant=State.at(window,element,"elements",index) if kind=="combo" else null
+	var old: Dictionary=by_path.get(path,{})
+	var same_choices:=kind!="combo" or State.equal(old.get("choice_map"),choice_map)
+	var id: int=int(old.id) if same_choices and old.get("element")==element and int(old.get("index",-2))==index else -1
 	if id<0: control_serial+=1; id=control_serial
 	var current:={"id":id,"element":element,"index":index,"parent":parent,"path":path,"ancestors":ancestors}
+	if kind=="combo": current.choice_map=choice_map
 	controls[id]=current
 	var enabled:=not State.strict_false(State.at(window,window.layout,"accepts_input")); var visible:=true
 	var parents:=ancestors+[{"element":element,"index":index}]
@@ -64,12 +69,12 @@ func visit(element: Variant,index: int=-1,parent: int=-1,path: String="root",anc
 	for key in ["border","encouraged"]: values[key]=State.truth(State.at(window,element,key,index))
 	var font: Variant=State.at(window,element,"font",index)
 	values.merge({"wordwrap":not State.strict_false(State.at(window,element,"wordwrap",index)),"font":font if font is String else "(default)","enabled":enabled,"visible":visible,"foreground_color":color(State.at(window,element,"foreground_color",index)),"tooltip":label(element.get("tooltip" if enabled else "disabled_tooltip",State.UNDEFINED),index)})
-	var kind:=str(element.type); var spec:={"controlId":id,"parent":parent,"type":kind,"index":index,"tag":element.get("id","") if element.get("id") is String else "","children":[],"values":values}; nodes.append(spec)
+	var spec:={"controlId":id,"parent":parent,"type":kind,"index":index,"tag":element.get("id","") if element.get("id") is String else "","children":[],"values":values}; nodes.append(spec)
 	if kind in ["button","button_select","check","label","text"]: values.label=label(element.get("value" if kind in ["label","text"] else "label",State.UNDEFINED),index)
 	if kind in ["button_select","check"]: values.value=State.truth(State.at(window,element,"value",index))
 	if kind in ["image","button_image"]: values.image=image(State.at(window,element,"value" if kind=="image" else "label",index),State.at(window,element,"image_region",index))
 	if kind in ["combo","options","tabbar"]:
-		var entries: Variant=State.at(window,element,"elements",index)
+		var entries: Variant=choice_map if kind=="combo" else State.at(window,element,"elements",index)
 		if State.missing(entries) or entries==null: entries=[]
 		if not entries is Array: failure="Invalid native NUI choices"; return -1
 		values.options=[]; values.selected=-1

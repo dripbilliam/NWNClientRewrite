@@ -133,6 +133,7 @@ func input(message: Dictionary) -> void:
 				if not value is bool: return
 			"combo","options","tabbar":
 				var entries: Variant=State.at(window,element,"elements",index)
+				if kind=="combo" and not State.equal(entries,control.get("choice_map")): return
 				if not entries is Array or not value is int and not value is float or int(value)<0 or int(value)>=entries.size(): return
 				value=entries[int(value)][1] if entries[int(value)] is Array else int(value)
 			"slider","sliderf":
