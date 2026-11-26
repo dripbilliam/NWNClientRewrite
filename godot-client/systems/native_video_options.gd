@@ -31,6 +31,7 @@ var scrollbar
 var repeat_clock:=Repeat.new()
 var arrow:=0
 var mode_signature: Array=[]
+var mode_screen: int=-1
 var layout_path:="user://native-menu-layout.cfg"
 var retained_position:=Vector2.INF
 var dragging:=false
@@ -207,6 +208,7 @@ func refresh() -> void:
 	labels.newres.text=text_owner.raw({"strRef":0x1b5a3 if current.windowed else 0x1b5a2})
 	labels.intlabel.text="%s (%s:%.1f,%s:%.1f)"%[text_owner.raw({"strRef":0x1b59e}),text_owner.raw({"strRef":0x1b59f}),current.minimum,text_owner.raw({"strRef":0x1b5a0}),current.maximum]
 	labels.intedit.text="%.1f"%pending_scale
+	mode_screen=get_window().current_screen if is_inside_tree() else -1
 	var rows: Array=settings.modes(); var signature: Array=[rows,settings.error,settings.query_ready]
 	if signature==mode_signature: return
 	mode_signature=signature.duplicate(true)
@@ -268,6 +270,8 @@ func _notification(what: int) -> void:
 	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		stop_arrow()
 		if dragging: dragging=false; save_position()
+	elif what==NOTIFICATION_WM_POSITION_CHANGED and not closed and layout_ready and is_visible_in_tree() and get_window().current_screen!=mode_screen:
+		refresh()
 func close() -> void:
 	if closed: return
 	_entry_configuration={}
