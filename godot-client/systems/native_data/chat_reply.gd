@@ -6,6 +6,12 @@ static func player(players: Array,id: int) -> Dictionary:
 	for pair in players:
 		if pair is Array and pair.size()==2 and int(pair[0])==id: return pair[1]
 	return {}
+static func current_player(players: Array,reply: Dictionary) -> Dictionary:
+	var account: Variant=reply.get("player_account")
+	var id:=int(reply.get("player_id",NO_PLAYER))
+	if id==NO_PLAYER or not account is String or account.is_empty(): return {}
+	var candidate:=player(players,id)
+	return candidate if candidate.get("name")==account else {}
 static func account_id(players: Array,account: String) -> int:
 	# Original6d8a20 compares account+10 length and bytes, case-sensitively.
 	for pair in players:
@@ -29,7 +35,12 @@ static func for_speaker(players: Array,id: int) -> int:
 	return NO_PLAYER
 static func presentation(id: int,objects: Dictionary,players: Array,text) -> Dictionary:
 	var rules:=Rules.new(); rules.text=text; var owner:=for_speaker(players,id)
-	var source:=rules.presentation_object(objects,id,players.filter(func(pair):return pair is Array and pair.size()==2 and int(pair[0])==owner))
+	var matching:=players.filter(func(pair):return pair is Array and pair.size()==2 and int(pair[0])==owner)
+	var source:=rules.presentation_object(objects,id,matching)
 	var portrait:=rules.portrait(source,1)
 	if not objects.has(id) and owner==NO_PLAYER: portrait="po_hu_m_99_t"
-	return {"player_id":owner,"portrait":portrait}
+	var reply:={"player_id":owner,"portrait":portrait}
+	if owner!=NO_PLAYER and not matching.is_empty():
+		var account: Variant=matching[0][1].get("name")
+		if account is String and not account.is_empty(): reply.player_account=account
+	return reply

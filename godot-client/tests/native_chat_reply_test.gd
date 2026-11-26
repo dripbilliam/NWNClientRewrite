@@ -17,7 +17,7 @@ func adjustments(frame,chat,surface,art,args) -> void:
 	var npc:=projector.speech({"channel":1,"objectId":78,"text":{"text":"NPC speech"}})
 	var remote:=projector.speech({"channel":2,"objectId":99,"speakerName":{"text":"Distant speaker"},"text":{"text":"Remote speech"}})
 	var system:=projector.speech({"channel":5,"text":{"text":"Server speech"}})
-	check(pc.reply=={"player_id":7,"portrait":"po_clsbard_t"} and npc.reply.player_id==Reply.NO_PLAYER and remote.reply.portrait=="po_hu_m_99_t" and not system.has("reply"),"Actual native speech projection discloses original PC/NPC/remote portraits and omits server portraits")
+	check(pc.reply=={"player_id":7,"portrait":"po_clsbard_t","player_account":"Player Account"} and npc.reply.player_id==Reply.NO_PLAYER and remote.reply.portrait=="po_hu_m_99_t" and not system.has("reply"),"Actual native speech projection retains the disclosed player account and original portrait choices")
 	projector.free(); chat.reset(); frame.original_preset(); frame.heights[0]=300; frame.expanded[0]=300; frame.place()
 	var requests_before: int=art.models.requests.size()
 	for row in [pc,npc,remote,system]: chat.append_message(row)

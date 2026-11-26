@@ -400,7 +400,7 @@ func interaction_scope() -> Array:
 	return [owner_ui.desktop.generation,owner_ui.desktop.area_id,owner_ui.desktop.actor_id] if is_instance_valid(owner_ui.desktop) else []
 func reply_tooltip(index: int,serial: int,owned_epoch: int) -> String:
 	if closed or owned_epoch!=epoch or not owner_ui.presentation_enabled or not panel.is_visible_in_tree() or index>=panes.size() or not panes[index].replies.has(serial) or not is_instance_valid(owner_ui.desktop): return ""
-	var row: Dictionary=panes[index].replies[serial].row; var player:=Reply.player(player_roster(),int(row.reply.get("player_id",Reply.NO_PLAYER)))
+	var row: Dictionary=panes[index].replies[serial].row; var player:=Reply.current_player(player_roster(),row.reply)
 	if player.is_empty(): return ""
 	var target:=int(player.get("objectId",Reply.INVALID))
 	return owner_ui.desktop.party_details.tooltip(target,owner_ui.desktop.state.get("module",{}))
@@ -411,7 +411,7 @@ func reply_clicked(index: int,serial: int,owned_epoch: int) -> void:
 	if closed or owned_epoch!=epoch or not owner_ui.presentation_enabled or not panel.is_visible_in_tree() or index>=panes.size() or not panes[index].replies.has(serial): return
 	var record: Dictionary=panes[index].replies[serial]; var held: Array=record.get("held_scope",[]); record.erase("held_scope")
 	if held.is_empty() or held!=interaction_scope(): return
-	var id:=int(record.row.reply.get("player_id",Reply.NO_PLAYER)); var player:=Reply.player(player_roster(),id)
+	var id:=int(record.row.reply.get("player_id",Reply.NO_PLAYER)); var player:=Reply.current_player(player_roster(),record.row.reply)
 	if player.is_empty(): return
 	panel.request.emit({"kind":"native-panel","panel":"chat-reply","open":true,"playerId":id,"targetId":int(player.get("objectId",Reply.INVALID))})
 	prime_player(str(player.get("name","")))
