@@ -156,7 +156,13 @@ function update(r,build,p){
  if(mask&16){
   if(objectType===10){s.interactionFlags=Array.from({length:6},()=>r.readBool());s.field424=s.interactionFlags[2];s.field428=s.interactionFlags[3];s.hasTransition=s.interactionFlags[5];}
   else if(objectType===9)s.interactionFlags=Array.from({length:5},()=>r.readBool());
-  else if(objectType===7){const base=p.objectState?.(id);if(typeof base?.isTrap!=='number')throw new UnhandledRecord('Trigger creation state for update is unavailable');s.interactionFlags=Array.from({length:base.isTrap?2:1},()=>r.readBool());}
+  else if(objectType===7){
+   const base=p.objectState?.(id);
+   if(typeof base?.isTrap!=='number')throw new UnhandledRecord('Trigger creation state for update is unavailable');
+   s.interactionFlags=Array.from({length:base.isTrap?2:1},()=>r.readBool());
+   // The ordinary trigger's update replaces the transition flag from creation.
+   if(!base.isTrap)s.hasTransition=s.interactionFlags[0];
+  }
  }
  if(mask&0x80000&&[6,9,10].includes(objectType))s.name=named(r);
  if(mask&64&&objectType===6)s.field468=r.readBool();

@@ -12,6 +12,8 @@ import {WorldHighlightRenderer} from '../src/world_highlight_renderer.js';
 import {NetworkGameSession} from '../electron/network_game_session.mjs';
 import {NetworkFrontend} from '../src/network_frontend.js';
 import {walkToWaypointRequest} from '../src/network_player_requests.js';
+import {NativeMessageWriter} from '../src/native_message.js';
+import {decodeServerGameMessage} from '../src/network_game_messages.js';
 
 const region=()=>({id:0x80000010,objectType:7,areaId:0x80000001,replicated:{name:{text:'Portal'},hasTransition:1,isTrap:0,position:[100,100,100],vertices:[[0,0,0],[3,0,0],[3,1,0],[1,1,0],[1,3,0],[0,3,0]]}});
 const ray=(x,y)=>new Raycaster(new Vector3(x,10,-y),new Vector3(0,-1,0));
@@ -57,4 +59,63 @@ test('Godot-selected trigger approach retains its ID without importing legacy ge
   assert.deepEqual(sent,[walkToWaypointRequest({areaId:o.areaId,position,targetId:o.id,sequence:1,run:true,clientPath:false,fractional:0})]);
   o.replicated.isTrap=true;await assert.rejects(session.interact({areaId:o.areaId,areaGeneration:2,targetId:o.id,action:'trigger.transition',position}));assert.equal(sent.length,1);
  }finally{hook.deregister();await session.disconnect();}
+});
+
+test('a received doorless transition flag update controls targeted waypoint dispatch',async()=>{
+ const world=new NetworkWorld(),portal=region();
+ const actor={id:0xffffffff,areaId:portal.areaId,objectType:5,replicated:{position:[5,5,0]}};
+ const trap={...region(),id:portal.id+1};
+ trap.replicated.isTrap=1;
+ world.areaId=portal.areaId;
+ world.localObjectId=actor.id;
+ for(const object of [actor,portal,trap])world.registry.addObjectAtPos(object.id,object);
+
+ const peer=new EventEmitter(),sent=[];
+ peer.sendGameMessage=async packet=>sent.push(packet);
+ peer.disconnect=async()=>{};
+ const build={number:8193,revision:37,postfix:17};
+ const session=new NetworkGameSession({peer,identity:{dispose(){}},build:{build,dispose(){}},resources:{}});
+ session.world=world;
+ session.phase='playing';
+ session.areaReadySent=true;
+ session.areaGeneration=2;
+ const position=[0.5,2,0];
+ const request={areaId:portal.areaId,areaGeneration:2,targetId:portal.id,action:'trigger.transition',position};
+
+ function updateTrigger(id,flags){
+  const writer=new NativeMessageWriter(1);
+  writer.create(16,0xffffffff,1);
+  writer.setPrefix(Uint8Array.of(80,5,1));
+  writer.writeByte('U'.charCodeAt(0));
+  writer.writeByte(7);
+  writer.writeObjectIdClient(id);
+  writer.writeDword(flags.length>0?16:0);
+  for(const flag of flags)writer.writeBool(flag);
+  const message=decodeServerGameMessage(writer.getWriteMessage().data,{clientBuild:build,objectRules:{objectState:id=>world.registry.get(id)?.replicated}});
+  assert.equal(message.complete,true);
+  assert.equal(world.apply(message),true);
+  return message.records[0].state;
+ }
+
+ try{
+  await session.interact(request);
+  updateTrigger(portal.id,[0]);
+  await assert.rejects(session.interact(request),/transition trigger is unavailable/);
+  assert.equal(portal.replicated.hasTransition,0);
+  assert.equal(networkTriggerSurface(portal),null);
+  updateTrigger(portal.id,[]);
+  await assert.rejects(session.interact(request),/transition trigger is unavailable/);
+  assert.equal(sent.length,1);
+
+  updateTrigger(portal.id,[1]);
+  assert.equal(portal.replicated.hasTransition,1);
+  assert.ok(networkTriggerSurface(portal));
+  await session.interact(request);
+  assert.deepEqual(sent,[1,2].map(sequence=>walkToWaypointRequest({areaId:portal.areaId,position,targetId:portal.id,sequence,run:true,clientPath:false,fractional:0})));
+
+  assert.deepEqual(updateTrigger(trap.id,[0,1]),{interactionFlags:[0,1]});
+  assert.equal(trap.replicated.hasTransition,1);
+  await assert.rejects(session.interact({...request,targetId:trap.id}),/transition trigger is unavailable/);
+  assert.equal(sent.length,2);
+ }finally{await session.disconnect();}
 });
