@@ -25,7 +25,7 @@ The goal is to let players change how their client presents and controls the gam
 - Free cam and noclip detached camera movement, to setup amazing photos.
 - (re)Shaders perhaps?
 - Buff Timer Icons for important things like making sure short term buffs have an obvious and explicit (second) timer for you to watch.
-- Different inventory and bag layouts, organization and interaction, while preserving server authority.
+- ~~Different inventory and bag layouts, organization and interaction, while preserving server authority.~~ (Could not figure out a way to make it pretty without shrinking it to impossible sizes)
 - Alternative dialogue presentation, text layouts and input workflows.
 
 These are examples of the intended modding direction, not a promise that every customization is available today. Fair client side modding must respect server rules and the information the client is allowed to receive. The original server remains authoritative over gameplay outcomes.
